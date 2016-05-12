@@ -8,11 +8,19 @@
 		"eofline": true,
 		"forin": false,
 		"indent": [ true, "tabs" ],
+<<<<<<< 82bed35770eb1a5a6a0213b0c15732b4aa5f37d4
 		"interface-name": [ true, "never-prefix" ],
 		"jsdoc-format": true,
 		"label-position": true,
 		"label-undefined": true,
 		"max-line-length": 120,
+=======
+		"interface-name": false,
+		"jsdoc-format": true,
+		"label-position": true,
+		"label-undefined": true,
+		"max-line-length": false,
+>>>>>>> Starting work on new store
 		"member-access": false,
 		"member-ordering": false,
 		"no-any": false,
@@ -27,7 +35,10 @@
 		"no-duplicate-variable": true,
 		"no-empty": false,
 		"no-eval": true,
+<<<<<<< 82bed35770eb1a5a6a0213b0c15732b4aa5f37d4
 		"no-inferrable-types": [ true, "ignore-params" ],
+=======
+>>>>>>> Starting work on new store
 		"no-shadowed-variable": false,
 		"no-string-literal": false,
 		"no-switch-case-fall-through": false,
@@ -42,7 +53,11 @@
 		"one-line": [ true, "check-open-brace", "check-whitespace" ],
 		"quotemark": [ true, "single" ],
 		"radix": true,
+<<<<<<< 82bed35770eb1a5a6a0213b0c15732b4aa5f37d4
 		"semicolon": [ true, "always" ],
+=======
+		"semicolon": true,
+>>>>>>> Starting work on new store
 		"trailing-comma": [ true, {
 			"multiline": "never",
 			"singleline": "never"
@@ -55,6 +70,7 @@
 			"parameter": "nospace",
 			"property-declaration": "nospace",
 			"variable-declaration": "nospace"
+<<<<<<< 82bed35770eb1a5a6a0213b0c15732b4aa5f37d4
 		}, {
 			"call-signature": "onespace",
 			"index-signature": "onespace",
@@ -64,6 +80,11 @@
 		} ],
 		"use-strict": false,
 		"variable-name": [ true, "check-format", "allow-leading-underscore", "ban-keywords" ],
+=======
+		} ],
+		"use-strict": false,
+		"variable-name": false,
+>>>>>>> Starting work on new store
 		"whitespace": [ true, "check-branch", "check-decl", "check-operator", "check-module", "check-separator", "check-type", "check-typecast" ]
 	}
 }
