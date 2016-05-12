@@ -1,17 +1,11 @@
 {
-	"name": "dojo-stores",
-	"description": "Client side data management for Dojo 2",
-	"keywords": [
-		"dojo",
-		"dojo2"
-	],
+	"name": "New Store",
+	"description": "A new store implementation",
 	"authors": [
 	],
-	"main": "main.js",
-	"homepage": "http://dojotoolkit.org/",
 	"repository": {
 		"type": "git",
-		"url": "git://github.com/dojo/stores.git"
+		"url": "git://github.com/maier49/store-research.git"
 	},
 	"dependencies": {
 	},

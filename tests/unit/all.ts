@@ -1,2 +1,1 @@
-import './main';
-import './createMemoryStore';
+import './store/filter';
