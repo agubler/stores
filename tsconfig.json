@@ -17,30 +17,13 @@
 	],
 	"files": [
 		"./typings/index.d.ts",
-		"./src/createMemoryStore.ts",
 		"./src/main.ts",
-		"./src/patch/jsonPointer.ts",
-		"./src/patch/Operation.ts",
-		"./src/patch/Patch.ts",
-		"./src/store/filter.ts",
-		"./src/store/query.ts",
-		"./src/store/range.ts",
-		"./src/store/sort.ts",
-		"./src/store/Store.ts",
-		"./src/store/Transaction.ts",
-		"./src/utils.ts",
 		"./tests/functional/all.ts",
 		"./tests/intern-local.ts",
 		"./tests/intern-saucelabs.ts",
 		"./tests/intern.ts",
 		"./tests/support/Reporter.ts",
 		"./tests/support/util.ts",
-		"./tests/unit/all.ts",
-		"./tests/unit/createMemoryStore.ts",
-		"./tests/unit/main.ts",
-		"./tests/unit/store/filter.ts"
-	],
-	"atom": {
-		"rewriteTsconfig": true
-	}
+		"./tests/unit/all.ts"
+	]
 }
