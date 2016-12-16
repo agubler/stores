@@ -1,5 +1,6 @@
 import { ObservableStore, ItemUpdate, StoreDelta, mergeDeltas, buildIndex } from './mixins/createObservableStoreMixin';
 import { Query, QueryType } from '../query/interfaces';
+import { Subscription } from 'dojo-shim/Observable';
 import { Observable, Observer } from 'dojo-core/Observable';
 import { Patch } from '../patch/createPatch';
 import compose, { ComposeFactory } from 'dojo-compose/compose';
@@ -127,7 +128,7 @@ export interface QueryTransformState<T, S extends ObservableStore<any, any, any>
 	/**
 	 * Handle to the subscription to the source store
 	 */
-	sourceHandle?: Promise<Function>;
+	sourceHandle?: Promise<Subscription>;
 
 	inUpdate?: Promise<any>;
 }
@@ -743,7 +744,7 @@ export const createQueryTransformResult: QueryTransformResultFactory = compose<Q
 			function remove(observer: Observer<StoreDelta<any>>) {
 				state.observers.splice(state.observers.indexOf(observer), 1);
 				if (!state.observers.length && state.sourceHandle) {
-					state.sourceHandle.then((unsubscribe) => {
+					state.sourceHandle.then(({ unsubscribe }) => {
 						unsubscribe();
 					});
 				}
