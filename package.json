@@ -18,14 +18,14 @@
   "typings": "./dist/umd/@dojo/stores.d.ts",
   "peerDependencies": {
     "@dojo/compose": "2.0.0-beta.21",
-    "@dojo/core": "2.0.0-alpha.19",
+    "@dojo/core": "2.0.0-alpha.20",
     "@dojo/shim": "2.0.0-beta.8",
     "@dojo/has": "2.0.0-alpha.7"
   },
   "devDependencies": {
     "codecov.io": "0.1.6",
     "@dojo/interfaces": "2.0.0-alpha.11",
-    "@dojo/loader": "2.0.0-beta.8",
+    "@dojo/loader": "2.0.0-beta.9",
     "dts-generator": "~1.7.0",
     "glob": "^7.0.6",
     "grunt": "~1.0.1",
