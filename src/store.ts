@@ -17,6 +17,14 @@ export interface Executor {
 	(...args: any[]): void;
 }
 
+export interface CreateExecutor {
+	(process: Process, transformer?: Transformer): Executor;
+}
+
+export interface Get {
+	<T>(pointer: string): T;
+}
+
 export interface Transformer {
 	(...args: any[]): any;
 }
@@ -43,14 +51,14 @@ export class Store extends Evented {
 	 * @param process The process to create an executor of
 	 * @param transformer An optional transformer run on the arguments passed into the returned executor
 	 */
-	public createExecutor = this._createExecutor.bind(this);
+	public createExecutor: CreateExecutor = this._createExecutor.bind(this);
 
 	/**
 	 * Returns the state at a specific pointer path location.
 	 *
 	 * @param pointer The StorePointer path to the state that is required.
 	 */
-	public get = this._get.bind(this);
+	public get: Get = this._get.bind(this);
 
 	/**
 	 * Constructor, runs any initials processes that are received immediately.
