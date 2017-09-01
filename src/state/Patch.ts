@@ -42,7 +42,7 @@ function add(pointerTarget: PointerTarget, value: any): any {
 	if (Array.isArray(pointerTarget.target)) {
 		pointerTarget.target.splice(parseInt(pointerTarget.segment, 10), 0, value);
 	}
-	else if (pointerTarget.segment) {
+	else {
 		pointerTarget.target[pointerTarget.segment] = value;
 	}
 	return pointerTarget.object;
@@ -63,29 +63,17 @@ function remove(pointerTarget: PointerTarget): any {
 		pointerTarget.target.splice(parseInt(pointerTarget.segment, 10), 1);
 	}
 	else {
-		if (pointerTarget.segment) {
-			delete pointerTarget.target[pointerTarget.segment];
-		}
+		delete pointerTarget.target[pointerTarget.segment];
 	}
 	return pointerTarget.object;
 }
 
-function test(pointerTarget: PointerTarget, value?: any) {
-	const target = pointerTarget.segment ? pointerTarget.target[pointerTarget.segment] : pointerTarget.target;
-	if (value) {
-		return isEqual(target, value);
-	}
-	else {
-		return Boolean(target);
-	}
+function test(pointerTarget: PointerTarget, value: any) {
+	return isEqual(pointerTarget.target[pointerTarget.segment], value);
 }
 
 export function isObject(value: any): value is Object {
 	return Object.prototype.toString.call(value) === '[object Object]';
-}
-
-export function isObjectOrArray(from: any, to: any) {
-	return (Array.isArray(from) && Array.isArray(to)) || (isObject(from) && isObject(to));
 }
 
 export function isEqual(a: any, b: any): boolean {
@@ -123,20 +111,19 @@ function inverse(operation: PatchOperation, state: any): any[] {
 			value: operation.path.get(state)
 		};
 		const test = {
-			op: OperationType.REPLACE,
+			op: OperationType.TEST,
 			path: operation.path,
 			value: operation.value
 		};
 		return [ op, test ];
 	}
-	else if (operation.op === OperationType.REMOVE) {
+	else  {
 		return [{
 			op: OperationType.ADD,
 			path: operation.path,
 			value: operation.path.get(state)
 		}];
 	}
-	throw new Error('Unsupported Op');
 }
 
 export class Patch {

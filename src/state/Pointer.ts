@@ -24,7 +24,7 @@ export function walk(segments: string[], object: any, clone = true): PointerTarg
 
 	return segments.reduce((pointerTarget, segment, index) => {
 		if (Array.isArray(pointerTarget.target) && segment === '-') {
-			segment = String(pointerTarget.target.length);
+			segment = String(pointerTarget.target.length - 1);
 		}
 		if (index + 1 < segments.length) {
 			if (clone) {
@@ -63,7 +63,7 @@ export class Pointer {
 			this._segments = segments.split('/');
 			this._segments.shift();
 		}
-		if (segments.length === 0 || (segments.length === 1 && segments[0] === '/')) {
+		if (segments.length === 0 || (segments.length === 1 && (segments[0] === '/') || segments[0] === '')) {
 			throw new Error('Access to the root is not supported.');
 		}
 		this._segments = this._segments.map(decode);
@@ -78,9 +78,6 @@ export class Pointer {
 	}
 
 	get(object: any): any {
-		if (this.segments.length === 0) {
-			return object;
-		}
 		const pointerTarget: PointerTarget = walk(this.segments, object, false);
 		return pointerTarget.target[pointerTarget.segment];
 	}
