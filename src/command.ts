@@ -58,7 +58,7 @@ export function successResponse(operations: PatchOperation | PatchOperation[], o
  *
  * @param operations The patch state operations that need to be applied.
  */
-export function failureResponse(operations: PatchOperation | PatchOperation[]): CommandResponse {
+export function failureResponse(operations: PatchOperation | PatchOperation[] = []): CommandResponse {
 	operations = Array.isArray(operations) ? operations : [ operations ];
 	return {
 		type: CommandResponseType.FAILURE,
