@@ -1,8 +1,7 @@
 import { Evented } from '@dojo/core/Evented';
-import { isThenable } from '@dojo/shim/Promise';
 import { Patch, PatchOperation } from './state/Patch';
 import { Pointer } from './state/Pointer';
-import { CommandResponse, CommandResponseType, Process } from './command';
+import { Process } from './Process';
 
 /**
  * Represents the collection of operations required to
@@ -120,18 +119,6 @@ export class Store extends Evented {
 	}
 
 	/**
-	 * Writes the undo operations to the undo stack and emits an invalidation event.
-	 *
-	 * @param undoOperations The undo operations to write to the stack
-	 */
-	private _flush(undoOperations?: UndoOperations) {
-		if (undoOperations) {
-			this._undoStack.unshift(undoOperations);
-		}
-		this.emit({ type: 'invalidate' });
-	}
-
-	/**
 	 * Returns the state at a specific pointer path location.
 	 *
 	 * @param pointer The StorePointer path to the state that is required.
@@ -141,41 +128,15 @@ export class Store extends Evented {
 		return statePointer.get(this._state);
 	}
 
-	/**
-	 * Creates a `StatePatch` instance for the provided operations and commits then to
-	 * the current state.
-	 *
-	 * @param operations The operations to be executed.
-	 */
-	private _commit(operations: PatchOperation[]): PatchOperation[] {
+	public apply(operations: PatchOperation[]): PatchOperation[] {
 		const patch = new Patch(operations);
 		const patchResult = patch.apply(this._state);
 		this._state = patchResult.object;
 		return patchResult.undoOperations;
 	}
 
-	/**
-	 * Processes a `CommandResponse`
-	 *
-	 * @param undoOperations The undoOperations array to add any additional operations to
-	 * @param commandResponse The command response object to process
-	 */
-	private _processCommandResponse(undoOperations: PatchOperation[], { type, operations, options = {} }: CommandResponse) {
-		const { revert = false, undoable = true } = options;
-
-		if (type === CommandResponseType.FAILURE && revert) {
-			this._commit([ ...undoOperations.reverse() ]);
-		}
-
-		if (operations) {
-			const patchedUndoOperations = this._commit(operations);
-			if (undoable && !revert) {
-				undoOperations.push(...patchedUndoOperations);
-			}
-			else if (revert) {
-				this._flush();
-			}
-		}
+	public flush(): any {
+		this.emit({ type: 'invalidate' });
 	}
 
 	/**
@@ -183,36 +144,14 @@ export class Store extends Evented {
 	 * any additional arguments passed to the executor.
 	 *
 	 * @param process The process to create an executor of
-	 * @param transformer An optional transformer run on the arguments passed into the returned executor
 	 */
-	private _createExecutor(process: Process, transformer?: Transformer): Executor {
+	private _createExecutor(process: Process, transformer?: any): Executor {
 		return (...args: any[]): void => {
-			const localProcess = [ ...process ];
-			const payload = transformer ? transformer(...args) : args;
-			let processUndoOperations: PatchOperation[] = [];
-
-			const next = () => {
-				const command = localProcess.shift();
-
-				if (command) {
-					const commandResponse = command({ get: this.get, payload });
-					if (isThenable(commandResponse)) {
-						commandResponse.then((resolvedCommandResponse: CommandResponse) => {
-							this._processCommandResponse(processUndoOperations, resolvedCommandResponse);
-							this._flush();
-							next();
-						});
-					}
-					else {
-						this._processCommandResponse(processUndoOperations, commandResponse);
-						next();
-					}
-				}
-				else {
-					this._flush({ process, operations: processUndoOperations });
-				}
-			};
-			next();
+			process.execute(this, args, transformer).then(() => {
+				console.log('i am groot');
+			}).catch((error) => {
+				console.log('i am error');
+			});
 		};
 	}
 }

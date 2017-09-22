@@ -78,7 +78,7 @@ The `get` function returns back state for a given "path" or "selector", for exam
 function addTodoCommand({ get, payload }: CommandRequest) {
 	const todos = get('/todos');
 	const operations = [
-		{ op: OperationType.REPLACE, path: `/todos/${todos.length}`, value: payload }
+		{ op: OperationType.ADD, path: `/todos/${todos.length}`, value: payload }
 	];
 
 	return {
