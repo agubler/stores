@@ -92,7 +92,6 @@ export function isEqual(a: any, b: any): boolean {
 
 function inverse(operation: PatchOperation, state: any): any[] {
 	if (operation.op === OperationType.ADD) {
-
 		const op = {
 			op: OperationType.REMOVE,
 			path: operation.path
@@ -102,7 +101,7 @@ function inverse(operation: PatchOperation, state: any): any[] {
 			path: operation.path,
 			value: operation.value
 		};
-		return [ op, test ];
+		return [ test, op ];
 	}
 	else if (operation.op === OperationType.REPLACE) {
 		const op = {
@@ -115,7 +114,7 @@ function inverse(operation: PatchOperation, state: any): any[] {
 			path: operation.path,
 			value: operation.value
 		};
-		return [ op, test ];
+		return [ test, op ];
 	}
 	else  {
 		return [{

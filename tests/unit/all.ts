@@ -1,3 +1,3 @@
 import './store';
-import './command';
+import './process';
 import './state/all';

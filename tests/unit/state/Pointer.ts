@@ -1,7 +1,7 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 
-import { Pointer } from './../../../src/state/Pointer';
+import { Pointer, walk } from './../../../src/state/Pointer';
 
 registerSuite({
 	name: 'state/Pointer',
@@ -44,5 +44,24 @@ registerSuite({
 		const pointer = new Pointer('/foo/bar/-');
 		const obj = { foo: { bar: [ 1, 2, 3, 4, 5, 6, 7 ] } };
 		assert.strictEqual(pointer.get(obj), 7);
+	},
+	'get deep path that does not exist'() {
+		const pointer = new Pointer('/foo/bar/qux');
+		const obj = { };
+		assert.strictEqual(pointer.get(obj), undefined);
+	},
+	'walk deep path that does not exist with clone'() {
+		const pointer = new Pointer('/foo/bar/qux');
+		const target = walk(pointer.segments, {}, true);
+		assert.deepEqual(target.object, { foo: { bar: {} } });
+		assert.deepEqual(target.target, {});
+		assert.deepEqual(target.segment, 'qux');
+	},
+	'walk deep path that does not exist not clone'() {
+		const pointer = new Pointer('/foo/bar/qux');
+		const target = walk(pointer.segments, {}, false);
+		assert.deepEqual(target.object, { foo: { bar: {} } });
+		assert.deepEqual(target.target, {});
+		assert.deepEqual(target.segment, 'qux');
 	}
 });

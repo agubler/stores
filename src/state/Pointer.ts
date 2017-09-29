@@ -27,8 +27,8 @@ export function walk(segments: string[], object: any, clone = true): PointerTarg
 			segment = String(pointerTarget.target.length - 1);
 		}
 		if (index + 1 < segments.length) {
-			if (clone) {
-				let target = pointerTarget.target[segment];
+			let target = pointerTarget.target[segment];
+			if (clone || target === undefined) {
 				if (Array.isArray(target)) {
 					target = [ ...target ];
 				}
@@ -36,13 +36,13 @@ export function walk(segments: string[], object: any, clone = true): PointerTarg
 					target = { ...target };
 				}
 				else {
-					target = target;
+					target = {};
 				}
 				pointerTarget.target[segment] = target;
 				pointerTarget.target = target;
 			}
 			else {
-				pointerTarget.target = pointerTarget.target[segment];
+				pointerTarget.target = target;
 			}
 		}
 		else {

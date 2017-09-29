@@ -15,8 +15,19 @@ registerSuite({
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{op: 'remove', path: new Pointer('/test') },
-				{op: 'test', path: new Pointer('/test'), value: 'test'}
+				{op: 'test', path: new Pointer('/test'), value: 'test'},
+				{op: 'remove', path: new Pointer('/test') }
+			]);
+		},
+		'value to new nested path'() {
+			const patch = new Patch(ops.add('/foo/bar/qux', 'test'));
+			const obj = {};
+			const result = patch.apply(obj);
+			assert.notStrictEqual(result.object, obj);
+			assert.deepEqual(result.object, { foo: { bar: { qux: 'test' } } });
+			assert.deepEqual(result.undoOperations, [
+				{op: 'test', path: new Pointer('/foo/bar/qux'), value: 'test'},
+				{op: 'remove', path: new Pointer('/foo/bar/qux') }
 			]);
 		},
 		'value to existing path'() {
@@ -26,8 +37,8 @@ registerSuite({
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{op: 'remove', path: new Pointer('/test') },
-				{op: 'test', path: new Pointer('/test'), value: 'test'}
+				{op: 'test', path: new Pointer('/test'), value: 'test'},
+				{op: 'remove', path: new Pointer('/test') }
 			]);
 		},
 		'value to array index path'() {
@@ -37,8 +48,8 @@ registerSuite({
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: ['test'] });
 			assert.deepEqual(result.undoOperations, [
-				{op: 'remove', path: new Pointer('/test/0') },
-				{op: 'test', path: new Pointer('/test/0'), value: 'test'}
+				{op: 'test', path: new Pointer('/test/0'), value: 'test'},
+				{op: 'remove', path: new Pointer('/test/0') }
 			]);
 		}
 	},
@@ -50,8 +61,19 @@ registerSuite({
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{op: 'replace', path: new Pointer('/test'), value: undefined },
-				{op: 'test', path: new Pointer('/test'), value: 'test'}
+				{op: 'test', path: new Pointer('/test'), value: 'test'},
+				{op: 'replace', path: new Pointer('/test'), value: undefined }
+			]);
+		},
+		'value to new nested path'() {
+			const patch = new Patch(ops.replace('/foo/bar/qux', 'test'));
+			const obj = {};
+			const result = patch.apply(obj);
+			assert.notStrictEqual(result.object, obj);
+			assert.deepEqual(result.object, { foo: { bar: { qux: 'test' } } });
+			assert.deepEqual(result.undoOperations, [
+				{op: 'test', path: new Pointer('/foo/bar/qux'), value: 'test'},
+				{op: 'replace', path: new Pointer('/foo/bar/qux'), value: undefined }
 			]);
 		},
 		'existing path'() {
@@ -61,8 +83,8 @@ registerSuite({
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{op: 'replace', path: new Pointer('/test'), value: true },
-				{op: 'test', path: new Pointer('/test'), value: 'test'}
+				{op: 'test', path: new Pointer('/test'), value: 'test'},
+				{op: 'replace', path: new Pointer('/test'), value: true }
 			]);
 		},
 		'array index path'() {
@@ -72,8 +94,8 @@ registerSuite({
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: [ 'test', 'test' ] });
 			assert.deepEqual(result.undoOperations, [
-				{op: 'replace', path: new Pointer('/test/1'), value: 'foo' },
-				{op: 'test', path: new Pointer('/test/1'), value: 'test'}
+				{op: 'test', path: new Pointer('/test/1'), value: 'test'},
+				{op: 'replace', path: new Pointer('/test/1'), value: 'foo' }
 			]);
 		}
 	},
