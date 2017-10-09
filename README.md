@@ -283,6 +283,10 @@ const addTodoProcess = createProcess([
 To support "pessimistic" updates to the application state, i.e. wait until a remote service call has been completed before changing the application state simply put the async command before the application store update. This can be useful when performing a deletion of resource, when it can be surprising if item is removed from the UI "optimistically" only for it to reappear back if the remote service call fails.
 
 ```ts
+function byId(id: string) {
+	return (item: any) => id === item.id;
+}
+
 async function deleteTodoCommand({ get, payload: [ id ] }: CommandRequest) {
     const { todo, index } = find(get('/todos'), byId(id))
     await fetch(`/todo/${todo.id}`, { method: 'DELETE' } );
