@@ -209,7 +209,7 @@ function processCallback(error, result) {
 }
 ```
 
-The `undo` function will rollback all the operations that were performed by the `processes`.
+The `undo` function will rollback all the operations that were performed by the `process`.
 
 **Note:** Each undo operation has an associated `test` operation to ensure that the store is in the expected state to successfully run the undo operation, if the test fails then an error is thrown and no changes are performed.
 
