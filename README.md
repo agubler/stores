@@ -24,9 +24,9 @@ npm install @dojo/shim
 ## Features
 
  * Application state store designed to work with a reactive component architecture
- * Out of the box support for asynchronous operations
- * All modifications can be configured as undoable
- * Supports the optimistic pattern with automatic rollback on a failure
+ * Out of the box support for asynchronous commands
+ * All state operations are recorded per process and undoable via a process callback
+ * Supports the optimistic pattern with that can be rolled back on a failure
  * Fully serializable operations and state
 
 ## Overview
@@ -46,7 +46,7 @@ To work with the Dojo 2 store there are three core but simple concepts - Operati
  * `Command`
    * Simple functions that ultimately return operations needed to perform the required state change
  * `Process`
-   * A group of commands which normally represent a complete application behavior
+   * A function that to execute a group of commands that usually represent a complete application behavior
 
 ### Operations
 
@@ -110,7 +110,7 @@ async function postTodoCommand({ get, payload: [ id ] }: CommandRequest): Promis
 		throw new Error('Unable to post todo');
 	}
 	const json = await response.json();
-	const todos =  get('/todos');
+	const todos = get('/todos');
 	const index = findIndex(todos, byId(id));
 	// success
 	return [
@@ -179,6 +179,14 @@ initialStateProcess(store)();
 getTodosProcess(store)();
 ```
 
+## How does this differ from Redux
+
+Although Dojo 2 stores is a big atom state store, you never get access to the entire state object. To access the sections of state that are needed we use pointers to return the slice of state that is needed i.e. `path/to/state`. State is never directly updated by the user, with state changes only being processed by the operations returned by commands.
+
+There is no concept of `reducers`, meaning that there is no confusion about where logic needs to reside between `reducers` and  `actions`. `Commands` are the only place that state logic resides and return `operations` that dictate what `state` changes are required and processed internally by the `store`.
+
+Additionally means that there is no need to coordinate `actions` and `reducers` using a string action key, commands are simple function references that can be reused in multiple `processes`.
+
 ## Advanced
 
 ### Subscribing to store changes
@@ -238,20 +246,16 @@ const todos = store.get<Todo[]>('/todos');
 
 ### Optimistic Update Pattern
 
-Dojo 2 stores support the pattern of optimistic state updates with no special effort required. Consider the requirements of adding a new todo in a simple todo application:
+Optimistic updating can be used to build a responsive UI despite interactions that might take some time to respond, for example saving to a remote resource.
 
-* Want to add this to the state store immediately before persisting the new todo to a remote service
-* Run any complimentary commands such as calculating active & completed counts
-* Make the request to persist the new todo to the remote service
-  * On Success
-    * Simply update the id of the todo item with the id provided by the remote service
-  * On Failure
-    * Remove the todo item from the list and set a flag to indicate the failure
+In the case of adding a todo item for instance, with optimistic updating we can immediately add the todo before we even make a request to the server and avoid having an unnatural waiting period or loading indicator. When the server responds we can then reconcile the outcome based on whether it is successful or not.
 
-Sounds complicated? This an extremely common pattern within modern web applications so shouldn't be difficult or complicated to implement. With Dojo 2 stores this can achieved simply by creating a process with a callback to handle updates to state on an error using the commands demonstrated earlier.
+In the success scenario, we might need to update the added Todo item with an id that was provided in the response from the server, and change the color of the Todo item to green to indicate it was successfully saved.
+
+In the error scenario, it might be that we want to show a notification to say the request failed, and turn the Todo item red, with a "retry" button. It's even possible to revert/undo the adding of the Todo item or anything else that happened in the process.
 
 ```ts
-const handleAddTodoErrorProcess = createProcess([ () => [ add('/addTodoFailure', true) ]; ]);
+const handleAddTodoErrorProcess = createProcess([ () => [ add('/failed', true) ]; ]);
 
 function addTodoCallback(error, result) {
 	if (error) {
@@ -271,9 +275,9 @@ const addTodoProcess = createProcess([
 
 * `addTodoCommand`: Adds the new todo into the application state
 * `calculateCountsCommand`: Recalculates the count of completed and active todo items
-* `postTodoCommand`: posts the todo item to a remote service
-  * on failure: the previous two commands are automatically reverted and the `failed` flag set to `true`
-  * on success: updates the todo item `id`
+* `postTodoCommand`: posts the todo item to a remote service and using the process callback we can make changes if there is a failure
+  * on failure: the previous two commands are reverted and the `failed` state field is set to `true`
+  * on success: Returns operations that update the todo item `id` field with the value received from the remote service
 * `calculateCountsCommand`: Runs again after the success of `postTodoCommand`
 
 To support "pessimistic" updates to the application state, i.e. wait until a remote service call has been completed before changing the application state simply put the async command before the application store update. This can be useful when performing a deletion of resource, when it can be surprising if item is removed from the UI "optimistically" only for it to reappear back if the remote service call fails.
