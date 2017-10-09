@@ -218,8 +218,8 @@ The `undo` function will rollback all the operations that were performed by the 
 An optional `transformer` can be passed to the `createExecutor` function that will be used to parse the arguments passed to the executor.
 
 ```ts
-function transformer(value: string): any {
-	return { id: uuid(), value };
+function transformer(...payload: any[]): any {
+	return { id: uuid(), value: payload[0] };
 }
 
 const executor = process(state, transformer);
@@ -283,18 +283,10 @@ const addTodoProcess = createProcess([
 To support "pessimistic" updates to the application state, i.e. wait until a remote service call has been completed before changing the application state simply put the async command before the application store update. This can be useful when performing a deletion of resource, when it can be surprising if item is removed from the UI "optimistically" only for it to reappear back if the remote service call fails.
 
 ```ts
-function deleteTodoCommand({ get, payload: [ id ] }: CommandRequest) {
-	const todo = find(get('/todos'), byId(id))
-	const fetchOptions = {
-		method: 'DELETE',
-		headers: { 'Content-Type': 'text/plain' }
-	};
-	return fetch(`/todo/${todo.id}`, fetchOptions)
-		.then(throwIfNotOk)
-		.then(() => {
-			const index = findIndex(get('/todos'), byId(id));
-			return [ remove(`/todos/${index}`)) ];
-		});
+async function deleteTodoCommand({ get, payload: [ id ] }: CommandRequest) {
+    const { todo, index } = find(get('/todos'), byId(id))
+    await fetch(`/todo/${todo.id}`, { method: 'DELETE' } );
+    return [ remove(`/todos/${index}`) ];
 }
 
 const deleteTodoProcess = createProcess([ deleteTodoCommand, calculateCountsCommand ]);
