@@ -16,13 +16,13 @@
     "test": "grunt test"
   },
   "peerDependencies": {
-    "@dojo/core": "next",
-    "@dojo/has": "next",
-    "@dojo/shim": "next"
+    "@dojo/core": "~0.1.0",
+    "@dojo/has": "~0.1.0",
+    "@dojo/shim": "~0.1.0"
   },
   "devDependencies": {
-    "@dojo/interfaces": "next",
-    "@dojo/loader": "next",
+    "@dojo/interfaces": "~0.1.0",
+    "@dojo/loader": "~0.1.0",
     "@types/chai": "~3.4.0",
     "@types/es6-shim": "~0.31.0",
     "@types/glob": "~5.0.0",
