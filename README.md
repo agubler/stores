@@ -70,7 +70,9 @@ Dojo 2 stores provides a helper package that can generate `PatchOperation` objec
 
 ### Commands
 
-Commands are simply functions which are called internally by the store when executing a `Process` and return a `CommandResponse` that tells the store what needs to be done. Each command is passed a `CommandRequest` which provides a `get` function for access to the stores state and a `payload` object which contains the arguments which the process executor was called with.
+Commands are simply functions which are called internally by the store when executing a `Process` and return an array of `PatchOperations` that tells the `store` what state changes needs to be performed.
+
+Each command is passed a `CommandRequest` which provides a `get` function for access to the stores state and a `payload` object which contains the an array of arguments that the process executor was called with.
 
 The `get` function returns back state for a given "path" or "selector", for example `get('/my/deep/state')` or `get('/my/array/item/9')`.
 
@@ -78,13 +80,10 @@ The `get` function returns back state for a given "path" or "selector", for exam
 function addTodoCommand({ get, payload }: CommandRequest) {
 	const todos = get('/todos');
 	const operations = [
-		{ op: OperationType.ADD, path: `/todos/${todos.length}`, value: payload }
+		{ op: OperationType.ADD, path: `/todos/${todos.length}`, value: payload[0] }
 	];
 
-	return {
-		type: CommandResponseType.SUCCESS,
-		operations
-	};
+	return operations;
 }
 
 function calculateCountsCommand({ get }: CommandRequest) {
@@ -94,93 +93,90 @@ function calculateCountsCommand({ get }: CommandRequest) {
 		{ op: OperationType.REPLACE, path: '/activeCount', value: todos.length - completedTodos.length },
 		{ op: OperationType.REPLACE, path: '/completedCount', value: completedTodos.length }
 	];
-	return {
-		type: CommandResponseType.SUCCESS,
-		operations
-	};
+	return operations;
 }
 ```
 
-There are two types of CommandResponse, `SUCCESS` and `FAILURE` both of which can return `operations` to manipulate the stores state as well as options.
-
-Options:
- * `undoable`: Indicates if the command is undoable; `true` by default for `SUCCESS` and `false` for `FAILURE`
- * `revert`: Indicates if the command requires all previous process modifications to be reverted. Only valid with `FAILURE` responses.
-
  *Important:* Access to state root is not permitted and will throw an error, for example `get('/')`. This applies for `Operations` also, it is not possible to create an operation that will update the state root.
-
- #### Helper Command Responses
-
- Helper functions create successful (`successResponse`) and failure (`failureResponse`) `CommandResponses` are provided from `@dojo/stores/commands` that accept `Operation || Operation[]` and optional options.
-
-```ts
-const commandResponse = successResponse({ op: OperationType.REPLACE, path: '/path', value: 'value' });
-```
-
-```ts
-const commandResponse = failureResponse({ op: OperationType.REPLACE, path: '/path', value: 'value' });
-```
 
  ##### Asynchronous Commands
 
-Commands support asynchronous behavior out of the box simply by returning a `Promise<CommandResponse>`.
+Commands support asynchronous behavior out of the box simply by returning a `Promise<PatchOperation[]>`.
 
 ```ts
-async function postTodoCommand({ get, payload }: CommandRequest): Promise<CommandResponse> {
+async function postTodoCommand({ get, payload: [ id ] }: CommandRequest): Promise<PatchOperation[]> {
 	const response = await fetch('/todos');
 	if (!response.ok) {
-		// failure
-		return failureResponse({
-			op: OperationType.ADD,
-			path: '/failed',
-			value: true
-		});
+		throw new Error('Unable to post todo');
 	}
 	const json = await response.json();
 	const todos =  get('/todos');
-	const index = findIndex(todos, byId(payload.id));
+	const index = findIndex(todos, byId(id));
 	// success
-	return successResponse(replace(`/todos/${index}`, {
-		...todos[index],
-		loading: false,
-		id: data.uuid
-	}));
+	return [
+		replace(`/todos/${index}`, { ...todos[index], loading: false, id: data.uuid
+	];
 }
 ```
 
 ### Processes
 
-Processes are the construct passed to the store by the user in order to make changes to the application state. Processes are a simple array of Commands that get executed in sequence by the store until the last Command is completed or a Command returns a `FAILURE` state, these processes often represent an application behavior. For example adding a todo in a simple todo application which will be made up with multiple discreet commands.
+A `Process` is the construct used to execute commands against a `store` instance in order to make changes to the application state. `Processes` are created using the `createProcess` factory function that accepts an array of commands and an optional callback that can be used command to manage errors thrown from a command. The optional callback receives an `error` object and a `result` object. The `error` object contains the `error` stack and the command that caused the error. The `result` object contains the `payload` passed to the process, a function to undo the operations of the `process` and a function to execute an additional `process`.
+
+The array of `Commands` that are executed in sequence by the store until the last Command is completed or a `Command` throws an error, these processes often represent an application behavior. For example adding a todo in a simple todo application which will be made up with multiple discreet commands.
+
+A simple `process` to add a todo and recalculate the todo count:
 
 ```ts
-const addTodoProcess = [ addTodoCommand, calculateCountCommand ];
+const addTodoProcess = createProcess([ addTodoCommand, calculateCountCommand ]);
 ```
 
-Processes can be immediately executed against against the store, using `store.execute(process)` or can be wrapped so that they are deferred until they wrapping function is called. The arguments passed to the `executor` are passed to each of the Process's commands in a `payload` argument
+A `callback` can be provided which will be called when an error occurs or the process is successfully completed:
+
 
 ```ts
-const executor = store.createExecutor(process);
+function addTodoProcessCallback(error, result) {
+	if (error) {
+		// do something with the error
+		// possibly run the `undo` function from result to rollback the changes up to the
+		// error
+		result.undo();
+	}
+	// possible additional state changes by running another process using result.executor(otherProcess)
+}
 
-executor('arguments', 'get', 'passed', 'here');
+const addTodoProcess = createProcess([ addTodoCommand, calculateCountCommand ], addTodoProcessCallback);
+```
+
+The `Process` creates a deferred executor by passing the `store` instance `addTodoProcess(store)` which can be executed immediately by passing the `payload` `addTodoProcess(store)(arg1, arg2)` or more often passed to your widgets and used to initiate state changes on user interactions. The `payload` arguments passed to the `executor` are passed to each of the `Process`'s commands in a `payload` argument
+
+```ts
+const addTodoExecutor = addTodoProcess(store);
+
+addTodoExecutor('arguments', 'get', 'passed', 'here');
 ```
 
 ### Initial State
 
-Initial state can be defined on store creation by passing processes to the constructor.
+Initial state can be defined on store creation by executing a `Process` after the store has been instantiated.
 
 ```ts
 // Command that creates the basic initial state
 function initialStateCommand() {
-	return successResponse([
+	return [
 		add('/todos', []),
 		add('/currentTodo', ''),
 		add('/activeCount', 0),
 		add('/completedCount', 0)
-	], { undoable: false });
+	]);
 }
 
-// initializes the state and runs the `getTodosProcess`
-const store = createStore([ initialStateCommand ], getTodosProcess);
+const initialStateProcess = createProcess([ initialStateCommand ]);
+
+// creates the store, initializes the state and runs the `getTodosProcess`.
+const store = createStore();
+initialStateProcess(store)();
+getTodosProcess(store)();
 ```
 
 ## Advanced
@@ -197,21 +193,15 @@ store.on('invalidate', () => {
 
 ### Undo Processes
 
-The store records undo operations for every `Command` that returns `undoable: true`, grouped by it's `Process`. The `store` exposes two functions to leverage the undo capabilities manually, `store.hasUndoOperations(...processes: Process[])` and `store.undo(...processes: Process[])`.
-
-`hasUndoOperations` returns a `boolean` that indicates if there are any records in the undo history for the specified `processes`.
+The store records undo operations for every `Command`, grouped by it's `Process`. The `undo` function is passed as part of the `result` argument in the `Process` callback.
 
 ```ts
-// will return true if there are any `addTodoProcess` process records in the undo stack.
-const hasAddTodoProcessUndoOperations = store.hasUndoOperations(addTodoProcess);
+function processCallback(error, result) {
+	result.undo();
+}
 ```
 
-`undo` will perform the first undo record for the the `processes` arguments passed.
-
-```ts
-// will execute the undo operations for the first (most recent) `addTodoProcess` process record in the undo stack.
-store.undo(addTodoProcess);
-```
+The `undo` function will rollback all the operations that were performed by the `processes`.
 
 **Note:** Each undo operation has an associated `test` operation to ensure that the store is in the expected state to successfully run the undo operation, if the test fails then an error is thrown and no changes are performed.
 
@@ -224,7 +214,7 @@ function transformer(value: string): any {
 	return { id: uuid(), value };
 }
 
-const executor = store.createExecutor(process, transformer);
+const executor = process(state, transformer);
 
 executor('id');
 ```
@@ -258,10 +248,25 @@ Dojo 2 stores support the pattern of optimistic state updates with no special ef
   * On Failure
     * Remove the todo item from the list and set a flag to indicate the failure
 
-Sounds complicated? This an extremely common pattern within modern web applications so shouldn't be difficult or complicated to implement. With Dojo 2 stores this can achieved simply by creating a process with the commands demonstrated earlier.
+Sounds complicated? This an extremely common pattern within modern web applications so shouldn't be difficult or complicated to implement. With Dojo 2 stores this can achieved simply by creating a process with a callback to handle updates to state on an error using the commands demonstrated earlier.
 
 ```ts
-const addTodoProcess = [ addTodoCommand, calculateCountsCommand, postTodoCommand, calculateCountsCommand];
+const handleAddTodoErrorProcess = createProcess([ () => [ add('/addTodoFailure', true) ]; ]);
+
+function addTodoCallback(error, result) {
+	if (error) {
+		result.undo();
+		result.executor(handleAddTodoErrorProcess);
+	}
+}
+
+const addTodoProcess = createProcess([
+		addTodoCommand,
+		calculateCountsCommand,
+		postTodoCommand,
+		calculateCountsCommand
+	],
+	addTodoCallback);
 ```
 
 * `addTodoCommand`: Adds the new todo into the application state
@@ -284,13 +289,11 @@ function deleteTodoCommand({ get, payload: [ id ] }: CommandRequest) {
 		.then(throwIfNotOk)
 		.then(() => {
 			const index = findIndex(get('/todos'), byId(id));
-			return successResponse(remove(`/todos/${index}`));
-		}, () => {
-			return failureResponse(add('/failed', true));
+			return [ remove(`/todos/${index}`)) ];
 		});
 }
 
-const deleteTodoProcess = [ deleteTodoCommand, calculateCountsCommand];
+const deleteTodoProcess = createProcess([ deleteTodoCommand, calculateCountsCommand ]);
 ```
 
 *Note:* The process requires the counts to be recalculated after successfully deleting a todo, the process above shows how easily commands can be shared and reused.

@@ -77,7 +77,7 @@ export interface Undo {
  */
 export function createProcess<T>(commands: (Command[] | Command)[], callback?: ProcessCallback): Process {
 	return (store: Store, transformer?: Transformer): ProcessExecutor<T> => {
-		function executor(process: Process, payload: any, payloadTransformer?: Transformer): Promise<ProcessResult | ProcessError> {
+		function executor(process: Process, payload?: any, payloadTransformer?: Transformer): Promise<ProcessResult | ProcessError> {
 			return process(store, payloadTransformer)(payload);
 		}
 
