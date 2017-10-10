@@ -176,7 +176,11 @@ const initialStateProcess = createProcess([ initialStateCommand ]);
 // creates the store, initializes the state and runs the `getTodosProcess`.
 const store = createStore();
 initialStateProcess(store)();
-getTodosProcess(store)();
+// if a process contains an async command, like fetching initial data from a remote service the return promise can be used
+// to control the flow.
+getTodosProcess(store)().then(() => {
+	// do things once the todos have been fetched.
+});
 ```
 
 ## How does this differ from Redux
