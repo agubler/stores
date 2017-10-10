@@ -47,16 +47,16 @@ registerSuite({
 	'local undo throws an error if global undo has already been executed'() {
 		const { collector, undoer } = createUndoManager();
 		const store = new Store();
-		let localUndos: any[] = [];
+		let localUndo: any;
 		const incrementCounterProcess = createProcess([ incrementCounter ], collector((error, result) => {
-			localUndos.push(result.undo);
+			localUndo = result.undo;
 		}));
 		const executor = incrementCounterProcess(store);
 		executor();
 		assert.strictEqual(store.get('/counter'), 1);
 		undoer();
 		assert.throws(() => {
-			localUndos[0]();
+			localUndo && localUndo();
 		}, Error, 'Test operation failure. Unable to apply any operations.');
 	}
 });
