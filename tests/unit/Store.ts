@@ -1,7 +1,7 @@
 import * as registerSuite from 'intern!object';
 import * as assert from 'intern/chai!assert';
 
-import { Store } from './../../src/store';
+import { Store } from './../../src/Store';
 import { OperationType, PatchOperation } from './../../src/state/Patch';
 import { Pointer } from './../../src/state/Pointer';
 

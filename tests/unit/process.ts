@@ -3,7 +3,7 @@ import * as assert from 'intern/chai!assert';
 
 import { Pointer } from './../../src/state/Pointer';
 import { OperationType, PatchOperation } from './../../src/state/Patch';
-import { CommandRequest, createProcess } from './../../src/Process';
+import { CommandRequest, createProcess } from './../../src/process';
 import { Store } from './../../src/Store';
 
 let store: Store;

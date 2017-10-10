@@ -1,6 +1,6 @@
 import { isThenable } from '@dojo/shim/Promise';
 import { PatchOperation } from './state/Patch';
-import { Store } from './store';
+import { Store } from './Store';
 
 /**
  * The arguments passed to a `Command`
