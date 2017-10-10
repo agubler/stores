@@ -43,8 +43,11 @@ export interface ProcessError {
  * Represents a successful result from a ProcessExecutor
  */
 export interface ProcessResult {
-	undo: Undo;
 	executor: (process: Process, payload?: any, payloadTransformer?: Transformer) => Promise<ProcessResult | ProcessError>;
+	undo: Undo;
+	operations: PatchOperation[];
+	apply: (operations: PatchOperation[], invalidate?: boolean) => PatchOperation[];
+	get: <T>(pointer: string) => T;
 	payload: any;
 }
 
@@ -77,16 +80,17 @@ export interface Undo {
  */
 export function createProcess<T>(commands: (Command[] | Command)[], callback?: ProcessCallback): Process {
 	return (store: Store, transformer?: Transformer): ProcessExecutor<T> => {
+		const { apply, get } = store;
 		function executor(process: Process, payload?: any, payloadTransformer?: Transformer): Promise<ProcessResult | ProcessError> {
 			return process(store, payloadTransformer)(payload);
 		}
 
-		return async (...payload: any[]) => {
+		return async (...payload: any[]): Promise<ProcessResult | ProcessError>  => {
 			const undoOperations: PatchOperation[] = [];
+			const operations: PatchOperation[] = [];
 			const commandsCopy = [ ...commands ];
 			const undo = () => {
-				store.apply(undoOperations);
-				store.invalidate();
+				store.apply(undoOperations, true);
 			};
 
 			let command = commandsCopy.shift();
@@ -108,7 +112,8 @@ export function createProcess<T>(commands: (Command[] | Command)[], callback?: P
 					}
 
 					for (let i = 0; i < results.length; i++) {
-						undoOperations.push(...store.apply(results[i]));
+						operations.push(...results[i]);
+						undoOperations.push(...apply(results[i]));
 					}
 
 					store.invalidate();
@@ -119,8 +124,8 @@ export function createProcess<T>(commands: (Command[] | Command)[], callback?: P
 				error = { error: e, command };
 			}
 
-			callback && callback(error, { undo, executor, payload });
-			return Promise.resolve({ undo, executor, payload });
+			callback && callback(error, { operations, undo, apply, get, executor, payload });
+			return Promise.resolve({ error, operations, undo, apply, get, executor, payload });
 		};
 	};
 }
