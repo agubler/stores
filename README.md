@@ -298,6 +298,37 @@ const deleteTodoProcess = createProcess([ deleteTodoCommand, calculateCountsComm
 
 *Note:* The process requires the counts to be recalculated after successfully deleting a todo, the process above shows how easily commands can be shared and reused.
 
+### Executing concurrent commands
+
+A `Process` supports multiple commands to be executed concurrently by specifying the commands in an array when creating the process:
+
+```ts
+const myProcess = createProcess([ commandOne, [ concurrentCommandOne, concurrentCommandTwo ], commandTwo ]);
+```
+
+In this example, `commandOne` is executed, then both `concurrentCommandOne` and `concurrentCommandTwo` are executed concurrently. Once all of the concurrent commands are completed the results are applied in order before continuing with the process and executing `commandTwo`.
+
+**Note:** Concurrent commands are always assumed to be asynchronous and resolved using `Promise.all`.
+
+### Decorating Processes
+
+The `Process` callback provides a hook to apply generic/global functionality across multiple or all processes used within an application. This is done using higher order functions that wrap the process' local `callback` using the error and result payload to decorate or perform an action for all processes it used for.
+
+Dojo 2 stores provides a simple `UndoManager` that collects each processes `undo` function onto a single stack and exposes an `undoer` function that can be used to undo the last `process` executed.
+
+```ts
+import { createProcess } from '@dojo/stores/process';
+import { createUndoManager } from '@dojo/stores/extras';
+
+const { collector, undoer } = createUndoManager();
+// if the process doesn't need a local callback, the collector can be used without.
+const myProcess = createProcess([ commandOne, commandTwo ], collector());
+const myOtherProcess = createProcess([ commandThree, commandFour ], collector());
+
+// running `undeor` will undo the last process executed, that had registered the `collector` as a callback.
+undoer();
+```
+
 ## How do I contribute?
 
 We appreciate your interest!  Please see the [Dojo 2 Meta Repository](https://github.com/dojo/meta#readme) for the
