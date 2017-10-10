@@ -25,10 +25,13 @@ export class Store extends Evented {
 	/**
 	 * Applies store operations to state and returns the undo operations
 	 */
-	public apply = (operations: PatchOperation[]): PatchOperation[] => {
+	public apply = (operations: PatchOperation[], invalidate: boolean = false): PatchOperation[] => {
 		const patch = new Patch(operations);
 		const patchResult = patch.apply(this._state);
 		this._state = patchResult.object;
+		if (invalidate) {
+			this.invalidate();
+		}
 		return patchResult.undoOperations;
 	}
 
