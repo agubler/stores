@@ -318,19 +318,52 @@ In this example, `commandOne` is executed, then both `concurrentCommandOne` and 
 
 The `Process` callback provides a hook to apply generic/global functionality across multiple or all processes used within an application. This is done using higher order functions that wrap the process' local `callback` using the error and result payload to decorate or perform an action for all processes it used for.
 
-Dojo 2 stores provides a simple `UndoManager` that collects each processes `undo` function onto a single stack and exposes an `undoer` function that can be used to undo the last `process` executed.
+Dojo 2 stores provides a simple `UndoManager` that collects the undo function for each process onto a single stack and exposes an `undoer` function that can be used to undo the last `process` executed. If the local `undo` function is called then it will be automatically removed from the managers stack.
 
 ```ts
 import { createProcess } from '@dojo/stores/process';
 import { createUndoManager } from '@dojo/stores/extras';
 
-const { collector, undoer } = createUndoManager();
+const { undoCollector, undoer } = createUndoManager();
 // if the process doesn't need a local callback, the collector can be used without.
-const myProcess = createProcess([ commandOne, commandTwo ], collector());
-const myOtherProcess = createProcess([ commandThree, commandFour ], collector());
+const myProcess = createProcess([ commandOne, commandTwo ], undoCollector());
+const myOtherProcess = createProcess([ commandThree, commandFour ], undoCollector());
 
 // running `undeor` will undo the last process executed, that had registered the `collector` as a callback.
 undoer();
+```
+
+Decorating `callbacks` can composed together to combine multiple units of functionality, such that in the example below `myProcess` would run the `error` and `result` through the `collector`, `logger` and then `snapshot` callbacks.
+
+```ts
+const myProcess = createProcess([ commandOne, commandTwo ], collector(logger(snapshot())));
+```
+
+#### Decorating Multiple Process
+
+Specifying a `callback` decorator on an individual process explicitly works for targeted behavior but can become cumbersome when the decorator needs to be applied across multiple processes throughout the application.
+
+The `createProcessWith` higher order function can be used to specify `callback` decorators that need to be applied across multiple `processes`. The function accepts an array of `callback` decorators and returns a new `createProcess` factory function that will automatically apply the decorators to any process that it creates.
+
+```ts
+const customCreateProcess = createProcessWith([ undoCollector, logger ]);
+
+// `myProcess` will automatically be decorated with the `undoCollector` and `logger` callback decorators.
+const myProcess = customCreateProcess([ commandOne, commandTwo ]);
+```
+
+An additional helper function `createCallbackDecorator` can be used to turn a simple `ProcessCallback` into a decorator that ensures passed callback is executed after the decorating `callback` has been run.
+
+```ts
+const myCallback = (error: ProcessError, result: ProcessResult) => {
+	// do things with the outcome from the process
+};
+
+// turns the callback into a callback decorator
+const myCallbackDecorator = createCallbackDecorator(myCallback);
+
+// use the callback decorator as normal
+const myProcess = createProcess([ commandOne ], myCallbackDecorator());
 ```
 
 ## How do I contribute?
