@@ -17,11 +17,11 @@ function incrementCounter({ get }: CommandRequest): PatchOperation[] {
 registerSuite({
 	name: 'extras',
 	'collects undo functions for all processes using collector'() {
-		const { collector, undoer } = createUndoManager();
+		const { undoCollector, undoer } = createUndoManager();
 		const store = new Store();
-		let localUndos: any[] = [];
-		const incrementCounterProcess = createProcess([ incrementCounter ], collector((error, result) => {
-			localUndos.push(result.undo);
+		let localUndoStack: any[] = [];
+		const incrementCounterProcess = createProcess([ incrementCounter ], undoCollector((error, result) => {
+			localUndoStack.push(result.undo);
 		}));
 		const executor = incrementCounterProcess(store);
 		executor();
@@ -30,7 +30,7 @@ registerSuite({
 		assert.strictEqual(store.get('/counter'), 2);
 		executor();
 		assert.strictEqual(store.get('/counter'), 3);
-		localUndos[2]();
+		localUndoStack[2]();
 		assert.strictEqual(store.get('/counter'), 2);
 		undoer();
 		assert.strictEqual(store.get('/counter'), 1);
@@ -45,10 +45,10 @@ registerSuite({
 		assert.strictEqual(store.get('/counter'), 1);
 	},
 	'local undo throws an error if global undo has already been executed'() {
-		const { collector, undoer } = createUndoManager();
+		const { undoCollector, undoer } = createUndoManager();
 		const store = new Store();
 		let localUndo: any;
-		const incrementCounterProcess = createProcess([ incrementCounter ], collector((error, result) => {
+		const incrementCounterProcess = createProcess([ incrementCounter ], undoCollector((error, result) => {
 			localUndo = result.undo;
 		}));
 		const executor = incrementCounterProcess(store);
