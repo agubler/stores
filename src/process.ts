@@ -73,6 +73,20 @@ export interface Undo {
 }
 
 /**
+ * ProcessCallbackDecorator callback
+ */
+export interface ProcessCallbackDecorator {
+	(callback?: ProcessCallback): ProcessCallback;
+}
+
+/**
+ * CreateProcess factory interface
+ */
+export interface CreateProcess {
+	(commands: (Command[] | Command)[], callback?: ProcessCallback): Process;
+}
+
+/**
  * Factories a process using the provided commands and an optional callback. Returns an executor used to run the process.
  *
  * @param commands The commands for the process
@@ -126,6 +140,32 @@ export function createProcess<T>(commands: (Command[] | Command)[], callback?: P
 
 			callback && callback(error, { operations, undo, apply, get, executor, payload });
 			return Promise.resolve({ error, operations, undo, apply, get, executor, payload });
+		};
+	};
+}
+
+/**
+ * Creates a process factory that will create processes with the specified callback decorators applied.
+ * @param callbackDecorators array of process callback decorators to be used by the return factory.
+ */
+export function createProcessFactoryWith(callbackDecorators: ProcessCallbackDecorator[]): CreateProcess {
+	return (commands: (Command[] | Command)[], callback?: ProcessCallback): Process => {
+		const decoratedCallback = callbackDecorators.reduce((callback, callbackDecorator) => {
+			return callbackDecorator(callback);
+		}, callback);
+		return createProcess(commands, decoratedCallback);
+	};
+}
+
+/**
+ * Creates a `ProcessCallbackDecorator` from a `ProcessCallback`.
+ * @param processCallback the process callback to convert to a decorator.
+ */
+export function createCallbackDecorator(processCallback: ProcessCallback): ProcessCallbackDecorator {
+	return (previousCallback?: ProcessCallback): ProcessCallback => {
+		return (error: ProcessError, result: ProcessResult): void => {
+			processCallback(error, result);
+			previousCallback && previousCallback(error, result);
 		};
 	};
 }

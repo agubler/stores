@@ -3,7 +3,15 @@ import * as assert from 'intern/chai!assert';
 
 import { Pointer } from './../../src/state/Pointer';
 import { OperationType, PatchOperation } from './../../src/state/Patch';
-import { CommandRequest, createProcess } from './../../src/process';
+import {
+	CommandRequest,
+	createCallbackDecorator,
+	createProcess,
+	createProcessFactoryWith,
+	ProcessCallback,
+	ProcessError,
+	ProcessResult
+} from './../../src/process';
 import { Store } from './../../src/Store';
 
 let store: Store;
@@ -170,5 +178,51 @@ registerSuite({
 		});
 		const processExecutor = process(store);
 		processExecutor();
+	},
+	createProcessWith: {
+		'Creating a process returned automatically decorates all process callbacks'() {
+			let results: string[] = [];
+
+			const callbackDecorator = (callback?: ProcessCallback) => {
+				return (error: ProcessError, result: ProcessResult): void => {
+					results.push('callback one');
+					callback && callback(error, result);
+				};
+			};
+
+			const callbackTwo = (error: ProcessError, result: ProcessResult): void => {
+				results.push('callback two');
+			};
+
+			const logPointerCallback = (error: ProcessError, result: ProcessResult): void => {
+				const paths = result.operations.map(operation => operation.path.path);
+				const logs = result.get<string[][]>('/logs') || [];
+
+				result.apply([
+					{ op: OperationType.ADD, path: new Pointer(`/logs/${logs.length}`), value: paths }
+				]);
+			};
+
+			const createProcess = createProcessFactoryWith([
+				callbackDecorator,
+				createCallbackDecorator(callbackTwo),
+				createCallbackDecorator(logPointerCallback)
+			]);
+
+			const process = createProcess([ testCommandFactory('foo'), testCommandFactory('bar') ]);
+			const executor = process(store);
+			executor();
+			assert.lengthOf(results, 2);
+			assert.strictEqual(results[0], 'callback two');
+			assert.strictEqual(results[1], 'callback one');
+			assert.deepEqual(store.get('/logs'), [ [ '/foo', '/bar' ] ]);
+			executor();
+			assert.lengthOf(results, 4);
+			assert.strictEqual(results[0], 'callback two');
+			assert.strictEqual(results[1], 'callback one');
+			assert.strictEqual(results[2], 'callback two');
+			assert.strictEqual(results[3], 'callback one');
+			assert.deepEqual(store.get('/logs'), [ [ '/foo', '/bar' ], [ '/foo', '/bar' ] ]);
+		}
 	}
 });
