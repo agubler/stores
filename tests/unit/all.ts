@@ -1,4 +1,4 @@
 import './extras';
-import './store';
+import './Store';
 import './process';
 import './state/all';
