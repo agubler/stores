@@ -1,5 +1,5 @@
-import * as registerSuite from 'intern!object';
-import * as assert from 'intern/chai!assert';
+const { beforeEach, describe, it } = intern.getInterface('bdd');
+const { assert } = intern.getPlugin('chai');
 
 import { Store } from './../../src/Store';
 import { OperationType, PatchOperation } from './../../src/state/Patch';
@@ -11,29 +11,32 @@ const testPatchOperations: PatchOperation[] = [
 	{ op: OperationType.ADD, path: new Pointer('/test'), value: 'test'}
 ];
 
-registerSuite({
-	name: 'store',
-	beforeEach() {
+describe('store',  () => {
+	beforeEach(() => {
 		store = new Store();
-	},
-	createStore() {
+	});
+
+	it('create store', () => {
 		assert.isOk(store);
-	},
-	'apply/get'() {
+	});
+
+	it('apply/get', () => {
 		const undo = store.apply(testPatchOperations);
 
-		assert.strictEqual(store.get('/test'), 'test');
-		assert.deepEqual(undo, [
-			{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
-			{ op: OperationType.REMOVE, path: new Pointer('/test') }
-		]);
-	},
-	'invalidate'() {
+				assert.strictEqual(store.get('/test'), 'test');
+				assert.deepEqual(undo, [
+					{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
+					{ op: OperationType.REMOVE, path: new Pointer('/test') }
+				]);
+	});
+
+	it('invalidate', () => {
 		let invalidateEmitted = false;
 		store.on('invalidate', () => {
 			invalidateEmitted = true;
 		});
 		store.invalidate();
 		assert.isTrue(invalidateEmitted);
-	}
+	});
+
 });
