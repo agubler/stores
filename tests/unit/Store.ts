@@ -7,11 +7,9 @@ import { Pointer } from './../../src/state/Pointer';
 
 let store: Store = new Store();
 
-const testPatchOperations: PatchOperation[] = [
-	{ op: OperationType.ADD, path: new Pointer('/test'), value: 'test'}
-];
+const testPatchOperations: PatchOperation[] = [{ op: OperationType.ADD, path: new Pointer('/test'), value: 'test' }];
 
-describe('store',  () => {
+describe('store', () => {
 	beforeEach(() => {
 		store = new Store();
 	});
@@ -102,13 +100,13 @@ describe('store',  () => {
 	});
 
 	describe('paths', () => {
-		let store: Store<{ foo: { bar: string }, baz: number[] }>;
+		let store: Store<{ foo: { bar: string }; baz: number[] }>;
 
 		beforeEach(() => {
-			store = new Store<{ foo: { bar: string }, baz: number[] }>();
+			store = new Store<{ foo: { bar: string }; baz: number[] }>();
 			store.apply([
 				{ op: OperationType.ADD, path: new Pointer('/foo'), value: { bar: 'bar' } },
-				{ op: OperationType.ADD, path: new Pointer('/baz'), value: [ 5 ] }
+				{ op: OperationType.ADD, path: new Pointer('/baz'), value: [5] }
 			]);
 		});
 
@@ -129,9 +127,13 @@ describe('store',  () => {
 		});
 
 		it('should not return the root', () => {
-			assert.throws(() => {
-				store.get(store.path('' as any));
-			}, Error, 'Access to the root is not supported.');
+			assert.throws(
+				() => {
+					store.get(store.path('' as any));
+				},
+				Error,
+				'Access to the root is not supported.'
+			);
 		});
 	});
 });
