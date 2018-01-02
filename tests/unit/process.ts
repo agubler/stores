@@ -28,7 +28,7 @@ function promiseResolver() {
 const testCommandFactory = (value: string) => {
 	return ({ payload }: CommandRequest): PatchOperation[] => {
 		return [
-			{ op: OperationType.ADD, path: new Pointer(`/${value}`), value: payload[0] || value }
+			{ op: OperationType.ADD, path: new Pointer(`/${value}`), value: payload || value }
 		];
 	};
 };
@@ -37,7 +37,7 @@ const testAsyncCommandFactory = (value: string) => {
 	return ({ payload }: CommandRequest): Promise<PatchOperation[]> => {
 		const promise = new Promise<any>((resolve) => {
 			promiseResolvers.push(() => {
-				resolve([ { op: OperationType.ADD, path: new Pointer(`/${value}`), value: payload[0] || value } ]);
+				resolve([ { op: OperationType.ADD, path: new Pointer(`/${value}`), value: payload || value } ]);
 			});
 		});
 		promises.push(promise);
@@ -114,7 +114,7 @@ describe('process', () => {
 	});
 
 	it('passes the payload to each command', () => {
-		const process = createProcess([
+		const process = createProcess<string>([
 			testCommandFactory('foo'),
 			testCommandFactory('bar'),
 			testCommandFactory('baz')
@@ -145,11 +145,28 @@ describe('process', () => {
 		assert.strictEqual(baz, 'changed');
 	});
 
-	it('provides a command factory', () => {
-		const createCommand = createCommandFactory<{ foo: string }>();
+	it('supports generic for payload of command', () => {
+		const command = ({ payload }: CommandRequest<any, {foo: string}>): PatchOperation[] => {
+			return [ { op: OperationType.ADD, path: new Pointer(`/${payload}`), value: payload } ];
+		};
 
-		const command = createCommand(({ get, path }) => {
-			// get(path('bar')); shouldn't compile
+		// const process = createProcess<number>([ command ]); // shouldn't compile
+		const process = createProcess<{foo: string}>([ command ]); // shouldn't compile
+		// process(store)({ foo: 1 }); // shouldn't compile
+		return process(store)({ foo: '' }).then((result: any) => {
+			assert.deepEqual(result.payload, { foo: '' });
+		});
+	});
+
+	it('provides a command factory', () => {
+		const createCommand = createCommandFactory<{ foo: string }, number>();
+
+		const command = createCommand(({ get, path, payload }) => {
+			// get(path('bar')); // shouldn't compile
+			if (payload) {
+				// payload.toUpperCase(); // shouldn't compile
+				payload.toFixed(); // available on number
+			}
 			get(path('foo'));
 			return [];
 		});

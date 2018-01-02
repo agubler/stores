@@ -12,7 +12,7 @@ function incrementCounter({ get, path }: CommandRequest<{ counter: number }>): P
 	return [
 		{ op: OperationType.REPLACE, path: new Pointer('/counter'), value: ++counter }
 	];
-};
+}
 
 describe('extras', () => {
 
