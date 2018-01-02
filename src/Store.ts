@@ -141,7 +141,7 @@ export class Store<T = any> extends Evented implements State<T> {
 	public onChange = <U = any>(paths: Path<T, U> | Path<T, U>[], callback: () => void) => {
 		const callbackId = this._callbackId;
 		if (!Array.isArray(paths)) {
-			paths = [ paths ];
+			paths = [paths];
 		}
 		paths.forEach((path) => this._addOnChange(path, callback, callbackId));
 		this._callbackId += 1;
@@ -157,7 +157,7 @@ export class Store<T = any> extends Evented implements State<T> {
 				});
 			}
 		};
-	}
+	};
 
 	private _addOnChange = <U = any>(path: Path<T, U>, callback: () => void, callbackId: number): void => {
 		let changePaths = this._changePaths.get(path.path);
@@ -166,7 +166,7 @@ export class Store<T = any> extends Evented implements State<T> {
 		}
 		changePaths.callbacks.push({ callbackId, callback });
 		this._changePaths.set(path.path, changePaths);
-	}
+	};
 
 	private _runOnChanges() {
 		const callbackIdsCalled: number[] = [];
