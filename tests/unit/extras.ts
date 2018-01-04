@@ -24,11 +24,11 @@ describe('extras', () => {
 			})
 		);
 		const executor = incrementCounterProcess(store);
-		executor();
+		executor({});
 		assert.strictEqual(store.get(store.path('counter')), 1);
-		executor();
+		executor({});
 		assert.strictEqual(store.get(store.path('counter')), 2);
-		executor();
+		executor({});
 		assert.strictEqual(store.get(store.path('counter')), 3);
 		localUndoStack[2]();
 		assert.strictEqual(store.get(store.path('counter')), 2);
@@ -41,7 +41,7 @@ describe('extras', () => {
 		const store = new Store();
 		const incrementCounterProcess = createProcess([incrementCounter]);
 		const executor = incrementCounterProcess(store);
-		executor();
+		executor({});
 		undoer();
 		assert.strictEqual(store.get(store.path('counter')), 1);
 	});
@@ -57,7 +57,7 @@ describe('extras', () => {
 			})
 		);
 		const executor = incrementCounterProcess(store);
-		executor();
+		executor({});
 		assert.strictEqual(store.get(store.path('counter')), 1);
 		undoer();
 		assert.throws(

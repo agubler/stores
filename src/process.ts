@@ -5,54 +5,54 @@ import { State, Store } from './Store';
 /**
  * The arguments passed to a `Command`
  */
-export interface CommandRequest<T = any> extends State<T> {
-	payload: any[];
+export interface CommandRequest<T = any, P extends object = object> extends State<T> {
+	payload: P;
 }
 
 /**
  * A command factory interface. Returns the passed command. This provides a way to automatically infer and/or
  * verify the type of multiple commands without explicitly specifying the generic for each command
  */
-export interface CommandFactory<T = any> {
-	(command: Command<T>): Command<T>;
+export interface CommandFactory<T = any, P extends object = object> {
+	(command: Command<T, P>): Command<T, P>;
 }
 
 /**
  * Command that returns patch operations based on the command request
  */
-export interface Command<T = any> {
-	(request: CommandRequest<T>): Promise<PatchOperation<T>[]> | PatchOperation<T>[];
+export interface Command<T = any, P extends object = object> {
+	(request: CommandRequest<T, P>): Promise<PatchOperation<T>[]> | PatchOperation<T>[];
 }
 
 /**
  * Transformer function
  */
 export interface Transformer {
-	(payload: any): any;
+	(payload: object): object;
 }
 
 /**
  * A process that returns an executor using a Store and Transformer
  */
-export interface Process<T = any> {
-	(store: Store<T>, transformer?: Transformer): ProcessExecutor<T>;
+export interface Process<T = any, P extends object = object> {
+	(store: Store<T>, transformer?: Transformer): ProcessExecutor<T, P>;
 }
 
 /**
  * Represents an error from a ProcessExecutor
  */
 export interface ProcessError<T = any> {
-	error: Error;
-	command?: Command<T>[] | Command<T>;
+	error: Error | null;
+	command?: Command<T, any>[] | Command<T, any>;
 }
 
 /**
  * Represents a successful result from a ProcessExecutor
  */
 export interface ProcessResult<T = any> extends State<T> {
-	executor: (
-		process: Process<T>,
-		payload?: any,
+	executor: <P extends object = object>(
+		process: Process<T, P>,
+		payload: P,
 		payloadTransformer?: Transformer
 	) => Promise<ProcessResult<T> | ProcessError<T>>;
 	undo: Undo;
@@ -64,8 +64,8 @@ export interface ProcessResult<T = any> extends State<T> {
 /**
  * Runs a process for the given arguments.
  */
-export interface ProcessExecutor<T = any> {
-	(payload?: T): Promise<ProcessResult<T> | ProcessError<T>>;
+export interface ProcessExecutor<T = any, P extends object = object> {
+	(payload: P): Promise<ProcessResult<T> | ProcessError<T>>;
 }
 
 /**
@@ -92,16 +92,21 @@ export interface ProcessCallbackDecorator {
 /**
  * CreateProcess factory interface
  */
-export interface CreateProcess {
-	<T>(commands: (Command<T>[] | Command<T>)[], callback?: ProcessCallback<T>): Process<T>;
+export interface CreateProcess<T = any, P extends object = object> {
+	(commands: (Command<T, P>[] | Command<T, P>)[], callback?: ProcessCallback<T>): Process<T, P>;
 }
 
 /**
  * Creates a command factory with the specified type
  */
-export function createCommandFactory<T>(): CommandFactory<T> {
-	return (command) => command;
+export function createCommandFactory<T, P extends object = object>(): CommandFactory<T, P> {
+	return (command: Command<T, P>) => command;
 }
+
+/**
+ * Commands that can be passed to a process
+ */
+export type Commands<T = any, P extends object = object> = (Command<T, P>[] | Command<T, P>)[];
 
 /**
  * Factories a process using the provided commands and an optional callback. Returns an executor used to run the process.
@@ -109,18 +114,21 @@ export function createCommandFactory<T>(): CommandFactory<T> {
  * @param commands The commands for the process
  * @param callback Callback called after the process is completed
  */
-export function createProcess<T>(commands: (Command<T>[] | Command<T>)[], callback?: ProcessCallback): Process<T> {
-	return (store: Store<T>, transformer?: Transformer): ProcessExecutor<T> => {
+export function createProcess<T = any, P extends object = object>(
+	commands: Commands<T, P>,
+	callback?: ProcessCallback
+): Process<T, P> {
+	return (store: Store<T>, transformer?: Transformer): ProcessExecutor<T, P> => {
 		const { apply, get, path, at } = store;
-		function executor(
-			process: Process,
-			payload?: any,
+		function executor<P extends object = object>(
+			process: Process<T, P>,
+			payload: P,
 			payloadTransformer?: Transformer
 		): Promise<ProcessResult | ProcessError> {
 			return process(store, payloadTransformer)(payload);
 		}
 
-		return async (...payload: any[]): Promise<ProcessResult | ProcessError> => {
+		return async (payload: P): Promise<ProcessResult | ProcessError<T>> => {
 			const undoOperations: PatchOperation[] = [];
 			const operations: PatchOperation[] = [];
 			const commandsCopy = [...commands];
@@ -130,7 +138,7 @@ export function createProcess<T>(commands: (Command<T>[] | Command<T>)[], callba
 
 			let command = commandsCopy.shift();
 			let error: ProcessError | null = null;
-			payload = transformer ? [transformer(payload)] : payload;
+			payload = (transformer ? transformer(payload) : payload) as P;
 			try {
 				while (command) {
 					let results = [];
