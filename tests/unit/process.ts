@@ -163,21 +163,29 @@ describe('process', () => {
 
 	it('can type payload that extends an object', () => {
 		const createCommandOne = createCommandFactory<any, { foo: string }>();
-		const createCommandTwo = createCommandFactory();
+		const createCommandTwo = createCommandFactory<any, { bar: string }>();
+		const createCommandThree = createCommandFactory();
 		const commandOne = createCommandOne(({ get, path, payload }) => []);
 		const commandTwo = createCommandTwo(({ get, path, payload }) => []);
-		const processOne = createProcess([commandOne]);
+		const commandThree = createCommandThree(({ get, path, payload }) => []);
+		const processOne = createProcess<any, { foo: string; bar: string }>([commandOne, commandTwo]);
+		// createProcess([commandOne, commandTwo]); // shouldn't compile
 		// createProcess<any, { bar: string }>([commandOne]); // shouldn't compile
 		const processTwo = createProcess([commandTwo]);
+		const processThree = createProcess([commandThree]);
 		const executorOne = processOne(store);
 		const executorTwo = processTwo(store);
+		const executorThree = processThree(store);
 
 		// executorOne({}); // shouldn't compile
-		executorOne({ foo: 'bar' });
-		executorTwo({ foo: 'bar' });
-		executorTwo({});
+		// executorOne({ foo: 1 }); // shouldn't compile
+		executorOne({ foo: 'bar', bar: 'string' });
+		executorTwo({ bar: 'bar' });
+		// executorTwo({}); // shouldn't compile;
 		// executorTwo(1); // shouldn't compile
 		// executorTwo(''); // shouldn't compile
+		// executorThree(); // shouldn't compile
+		executorThree({});
 	});
 
 	it('can provide a callback that gets called on process completion', () => {

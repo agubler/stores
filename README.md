@@ -74,7 +74,7 @@ These function accept a `Path` type. This is returned by the `path` and `at` met
 
 Commands are simply functions which are called internally by the store when executing a `Process` and return an array of `PatchOperations` that tells the `store` what state changes needs to be performed.
 
-Each command is passed a `CommandRequest` which provides `path` and `at` functions to generate `Path`s in a typesafe way, a `get` function for access to the store's state, and a `payload` object which contains an array of the arguments that the process executor was called with.
+Each command is passed a `CommandRequest` which provides `path` and `at` functions to generate `Path`s in a typesafe way, a `get` function for access to the store's state, and a `payload` object for the argument that the process executor was called with.
 
 The `get` function returns back state for a given `Path`, for example `get(path('my', 'deep', 'state'))` or `get(at(path('my', 'array', 'item'), 9))`.
 
@@ -94,15 +94,32 @@ function calculateCountsCommand({ get, path }: CommandRequest) {
 	const completedTodos = todos.filter((todo: any) => todo.completed);
 	const operations = [
 		replace(path('activeCount'), todos.length - completedTodos.length),
-		replace(path('completedCount'), completedTodos.length)	
+		replace(path('completedCount'), completedTodos.length)
 	];
 
 	return operations;
 }
 ```
 
-A `Command`, or the `CommandRequest` argument to it, can be provided with a generic that indicates the type of the state of the
-store they are intended to target. This will provide type checking for all calls to `path` and `at`, ensuring that the operations will be targeting real properties of the store, and providing type inference for the return type of `get`. In order to avoid typing each `Command` explicitly, a `CommandFactory` can be created that will pass its generic type onto all commands it creates. Creating commands using a factory is essentially the same as creating them without one. It is simply a convenience to avoid repeating the same type for each command.
+A `Command`, or the `CommandRequest` argument to it, can be provided with a generics that indicates the type of the state of the store they are intended to target and the payload that will be passed. This will provide type checking for all calls to `path` and `at` and usages of `payload`, ensuring that the operations will be targeting real properties of the store, and providing type inference for the return type of `get`.
+
+```ts
+interface MyState {
+	id: string;
+}
+
+interface Payload {
+	id: string;
+}
+const command = (request: CommandRequest<MyState, Payload>) => {
+	return [
+		add(path('id'), request.payload.id);
+	];
+};
+
+```
+
+In order to avoid typing each `Command` explicitly, a `CommandFactory` can be created that will pass its generic types onto all commands it creates. Creating commands using a factory is essentially the same as creating them without one. It is simply a convenience to avoid repeating the same typings for each command.
 
 ```ts
 interface Todo {
@@ -113,7 +130,7 @@ interface Todo {
 interface TodoState {
 	todos: Todo[];
 	activeCount: number;
-	completdCount: number;
+	completedCount: number;
 }
 
 const createCommand = createCommandFactory<TodoState>();
@@ -193,12 +210,12 @@ function addTodoProcessCallback(error, result) {
 const addTodoProcess = createProcess([ addTodoCommand, calculateCountCommand ], addTodoProcessCallback);
 ```
 
-The `Process` creates a deferred executor by passing the `store` instance `addTodoProcess(store)` which can be executed immediately by passing the `payload` `addTodoProcess(store)(arg1, arg2)` or more often passed to your widgets and used to initiate state changes on user interactions. The `payload` arguments passed to the `executor` are passed to each of the `Process`'s commands in a `payload` argument
+The `Process` creates a deferred executor by passing the `store` instance `addTodoProcess(store)` which can be executed immediately by passing the `payload`, `addTodoProcess(store)(payload)`. Or more often passed to your widgets and used to initiate state changes on user interactions. The `payload` argument for the `executor` is required and is passed to each of the `Process`'s commands in a `payload` argument.
 
 ```ts
 const addTodoExecutor = addTodoProcess(store);
 
-addTodoExecutor('arguments', 'get', 'passed', 'here');
+addTodoExecutor({ foo: 'arguments', bar: 'get', baz: 'passed', qux: 'here'});
 ```
 
 ### Initial State
@@ -226,6 +243,40 @@ initialStateProcess(store)();
 getTodosProcess(store)().then(() => {
 	// do things once the todos have been fetched.
 });
+```
+
+The `payload` argument for the process executor can be specified as the second generic type when using `createProcess`
+
+```ts
+const process = createProcess<any, { foo: string }>([ command ]);
+const processExecutor = process(store);
+
+// The executor will require an argument that satisfies `{ foo: string }`
+processExecutor({ foo: 'bar' });
+processExecutor({ foo: 1 }); // Compile error
+```
+
+The process executor's `payload` type will also be inferred by the `payload` type of the commands if not specified explicitly, however the `payload` type for all the commands must be assignable, when this is not the case the payload generic type needs to be explicitly passed.
+
+```ts
+const createCommandOne = createCommandFactory<any, { foo: string }>();
+const createCommandTwo = createCommandFactory<any, { bar: string }>();
+const commandOne = createCommandOne(({ get, path, payload }) => []);
+const commandTwo = createCommandTwo(({ get, path, payload }) => []);
+
+const processOne = createProcess([commandOne]);
+const executorOne = processOne(store); // payload for executor inferred based on `commandOne`
+
+executorOne({ foo: 'foo' });
+executorOne({ bar: 'foo' }); // compile error
+
+// compile error as payload types for commandOne and commandTwo are not assignable
+const processTwo = createProcess([commandOne, commandTwo]);
+// Explicitly passing a generic that satisfies all the command payload types enables payload type widening
+const processTwo = createProcess<any, { foo: string, bar: string }>([commandOne, commandTwo]);
+const executorTwo = processTwo(store);
+executorTwo({ foo: 'foo' }); // compile error, as requires both `bar` and `foo`
+executorTwo({ foo: 'foo', bar: 'bar' }); // Yay, valid
 ```
 
 ## How does this differ from Redux
