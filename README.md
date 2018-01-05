@@ -83,7 +83,7 @@ function addTodoCommand({ at, path, get, payload }: CommandRequest) {
 	const todosPath = path('todos');
 	const length = get(todosPath).length;
 	const operations = [
-		add(at(todosPath, length), payload[0])
+		add(at(todosPath, length), payload)
 	];
 
 	return operations;
@@ -142,7 +142,7 @@ const addTodoCommand = createCommand(({ at, get, path, payload }) => {
 	const operations = [
 		// Using the utilities provided by the `operations` module ensures that the paths provided are valid,
 		// and that the values being added or replaced are of the appropriate type
-		add(at(path('todos'), todos.length), payload[0])
+		add(at(path('todos'), todos.length), payload)
 	];
 
 	return operations;
@@ -166,7 +166,7 @@ const calculateCountsCommand = createCommand(({ get, path }) => {
 Commands support asynchronous behavior out of the box simply by returning a `Promise<PatchOperation[]>`.
 
 ```ts
-async function postTodoCommand({ get, path, payload: [ id ] }: CommandRequest): Promise<PatchOperation[]> {
+async function postTodoCommand({ get, path, payload: { id }}: CommandRequest): Promise<PatchOperation[]> {
 	const response = await fetch('/todos');
 	if (!response.ok) {
 		throw new Error('Unable to post todo');
@@ -337,8 +337,8 @@ The `undo` function will rollback all the operations that were performed by the 
 An optional `transformer` can be passed to the `createExecutor` function that will be used to parse the arguments passed to the executor.
 
 ```ts
-function transformer(...payload: any[]): any {
-	return { id: uuid(), value: payload[0] };
+function transformer(payload: object): object {
+	return { id: uuid(), value: payload };
 }
 
 const executor = process(state, transformer);
@@ -391,7 +391,7 @@ function byId(id: string) {
 	return (item: any) => id === item.id;
 }
 
-async function deleteTodoCommand({ get, payload: [ id ] }: CommandRequest) {
+async function deleteTodoCommand({ get, payload: { id } }: CommandRequest) {
     const { todo, index } = find(get('/todos'), byId(id))
     await fetch(`/todo/${todo.id}`, { method: 'DELETE' } );
     return [ remove(`/todos/${index}`) ];
