@@ -207,7 +207,7 @@ function addTodoProcessCallback(error, result) {
 	// possible additional state changes by running another process using result.executor(otherProcess)
 }
 
-const addTodoProcess = createProcess([ addTodoCommand, calculateCountCommand ], addTodoProcessCallback);
+const addTodoProcess = createProcess([ addTodoCommand, calculateCountCommand ], { callback: addTodoProcessCallback });
 ```
 
 The `Process` creates a deferred executor by passing the `store` instance `addTodoProcess(store)` which can be executed immediately by passing the `payload`, `addTodoProcess(store)(payload)`. Or more often passed to your widgets and used to initiate state changes on user interactions. The `payload` argument for the `executor` is required and is passed to each of the `Process`'s commands in a `payload` argument.
@@ -334,19 +334,27 @@ The `undo` function will rollback all the operations that were performed by the 
 
 ### Transforming Executor Arguments
 
-An optional `transformer` can be passed to the `createExecutor` function that will be used to parse the arguments passed to the executor.
+An optional `transformer` can be passed to the `createProcess` function that will be used to parse the arguments passed to the executor.
 
 ```ts
-function transformer(payload: object): object {
-	return { id: uuid(), value: payload };
-}
+const createCommand = createCommandFactory<any, { bar: number, foo: number }>();
+const command = createCommand(({ get, path, payload }) => {
+	// payload typed to { bar: number, foo: number }
+});
 
-const executor = process(state, transformer);
+const transformer = (payload: { foo: number }): { bar: number; foo: number } => {
+	return {
+		bar: 1,
+		foo: 2
+	};
+};
 
-executor('id');
+const processExecutor = processOne(store, { transformer });
+
+processExecutor({ foo: 'bar' })
 ```
 
-Each `Command` will be passed the result of the transformer as the `payload` for example: `{ id: 'UUID-VALUE', value }`
+Each `Command` will be passed the result of the transformer as the `payload` for example: `{ bar: 1, foo: 2 }`
 
 ### Optimistic Update Pattern
 
@@ -374,7 +382,7 @@ const addTodoProcess = createProcess([
 		postTodoCommand,
 		calculateCountsCommand
 	],
-	addTodoCallback);
+	{ callback: addTodoCallback });
 ```
 
 * `addTodoCommand`: Adds the new todo into the application state
@@ -426,8 +434,8 @@ import { createUndoManager } from '@dojo/stores/extras';
 
 const { undoCollector, undoer } = createUndoManager();
 // if the process doesn't need a local callback, the collector can be used without.
-const myProcess = createProcess([ commandOne, commandTwo ], undoCollector());
-const myOtherProcess = createProcess([ commandThree, commandFour ], undoCollector());
+const myProcess = createProcess([ commandOne, commandTwo ], { callback: undoCollector() });
+const myOtherProcess = createProcess([ commandThree, commandFour ], { callback: undoCollector() });
 
 // running `undeor` will undo the last process executed, that had registered the `collector` as a callback.
 undoer();
@@ -463,7 +471,7 @@ const myCallback = (error: ProcessError, result: ProcessResult) => {
 const myCallbackDecorator = createCallbackDecorator(myCallback);
 
 // use the callback decorator as normal
-const myProcess = createProcess([ commandOne ], myCallbackDecorator());
+const myProcess = createProcess([ commandOne ], { callback: myCallbackDecorator() });
 ```
 
 ## How do I contribute?

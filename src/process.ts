@@ -27,15 +27,15 @@ export interface Command<T = any, P extends object = object> {
 /**
  * Transformer function
  */
-export interface Transformer {
-	(payload: object): object;
+export interface Transformer<P extends object = object, R extends object = object> {
+	(payload: P): R;
 }
 
 /**
  * A process that returns an executor using a Store and Transformer
  */
-export interface Process<T = any, P extends object = object> {
-	(store: Store<T>, transformer?: Transformer): ProcessExecutor<T, P>;
+export interface Process<T = any, P extends object = object, R extends object = object> {
+	(store: Store<T>): ProcessExecutor<T, P, R>;
 }
 
 /**
@@ -49,23 +49,23 @@ export interface ProcessError<T = any> {
 /**
  * Represents a successful result from a ProcessExecutor
  */
-export interface ProcessResult<T = any> extends State<T> {
+export interface ProcessResult<T = any, R extends object = object> extends State<T> {
 	executor: <P extends object = object>(
 		process: Process<T, P>,
-		payload: P,
-		payloadTransformer?: Transformer
+		payload: P
 	) => Promise<ProcessResult<T> | ProcessError<T>>;
 	undo: Undo;
 	operations: PatchOperation<T>[];
 	apply: (operations: PatchOperation<T>[], invalidate?: boolean) => PatchOperation<T>[];
-	payload: any;
+	payload: R;
+	error?: ProcessError<T> | null;
 }
 
 /**
  * Runs a process for the given arguments.
  */
-export interface ProcessExecutor<T = any, P extends object = object> {
-	(payload: P): Promise<ProcessResult<T> | ProcessError<T>>;
+export interface ProcessExecutor<T = any, P extends object = object, R extends object = object> {
+	(payload: P): Promise<ProcessResult<T, R>>;
 }
 
 /**
@@ -108,27 +108,32 @@ export function createCommandFactory<T, P extends object = object>(): CommandFac
  */
 export type Commands<T = any, P extends object = object> = (Command<T, P>[] | Command<T, P>)[];
 
+export interface ProcessOptions<P extends object = object, R extends object = object> {
+	transformer?: Transformer<P, R>;
+	callback?: ProcessCallback;
+}
+
 /**
  * Factories a process using the provided commands and an optional callback. Returns an executor used to run the process.
  *
  * @param commands The commands for the process
  * @param callback Callback called after the process is completed
  */
-export function createProcess<T = any, P extends object = object>(
-	commands: Commands<T, P>,
-	callback?: ProcessCallback
-): Process<T, P> {
-	return (store: Store<T>, transformer?: Transformer): ProcessExecutor<T, P> => {
+export function createProcess<T = any, P extends object = object, R extends object = P>(
+	commands: Commands<T, R>,
+	{ transformer, callback }: ProcessOptions<P, R> = {}
+): Process<T, P, R> {
+	transformer = transformer ? transformer : (payload: any): R => payload as R;
+	return (store: Store<T>): ProcessExecutor<T, P, R> => {
 		const { apply, get, path, at } = store;
 		function executor<P extends object = object>(
 			process: Process<T, P>,
-			payload: P,
-			payloadTransformer?: Transformer
+			payload: P
 		): Promise<ProcessResult | ProcessError> {
-			return process(store, payloadTransformer)(payload);
+			return process(store)(payload);
 		}
 
-		return async (payload: P): Promise<ProcessResult | ProcessError<T>> => {
+		return async (executorPayload: P): Promise<ProcessResult<T, R>> => {
 			const undoOperations: PatchOperation[] = [];
 			const operations: PatchOperation[] = [];
 			const commandsCopy = [...commands];
@@ -138,7 +143,7 @@ export function createProcess<T = any, P extends object = object>(
 
 			let command = commandsCopy.shift();
 			let error: ProcessError | null = null;
-			payload = (transformer ? transformer(payload) : payload) as P;
+			const payload = transformer(executorPayload);
 			try {
 				while (command) {
 					let results = [];
@@ -180,7 +185,7 @@ export function createProcessFactoryWith(callbackDecorators: ProcessCallbackDeco
 		const decoratedCallback = callbackDecorators.reduce((callback, callbackDecorator) => {
 			return callbackDecorator(callback);
 		}, callback);
-		return createProcess(commands, decoratedCallback);
+		return createProcess(commands, { callback: decoratedCallback });
 	};
 }
 
