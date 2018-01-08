@@ -334,24 +334,50 @@ The `undo` function will rollback all the operations that were performed by the 
 
 ### Transforming Executor Arguments
 
-An optional `transformer` can be passed to the `createProcess` function that will be used to parse the arguments passed to the executor.
+An optional `transformer` can be passed to a process that is be used to transform the `executor`s payload to the `command` payload type. The return type of the `transformer` must match the `command` `payload` type of the `process`. The argument type of the `executor` is inferred from transformers `payload` type.
 
 ```ts
-const createCommand = createCommandFactory<any, { bar: number, foo: number }>();
+interface CommandPayload {
+	bar: number;
+	foo: number;
+}
+// `CommandPayload` types the command payload and the argument of the process executor
+const createCommand = createCommandFactory<any, CommandPayload>();
+
+// `payload` is typed to `CommandPayload`
 const command = createCommand(({ get, path, payload }) => {
-	// payload typed to { bar: number, foo: number }
 });
 
-const transformer = (payload: { foo: number }): { bar: number; foo: number } => {
+const process = createProcess([command]);
+
+interface TransformerPayload {
+	foo: string;
+}
+
+// The transformer return type must match the original `CommandPayload`
+const transformer = (payload: TransformerPayload): CommandPayload => {
 	return {
 		bar: 1,
 		foo: 2
 	};
 };
 
-const processExecutor = processOne(store, { transformer });
+// when no transformer passed to the process the executor `payload` is typed to `CommandPayload`
+const processExecutor = process(store);
+// Works
+processExecutor({ bar: 1, foo: 2 });
+// These shouldn't work as `payload` does not match `CommandPayload` interface
+processExecutor({ bar: '', foo: 2 });
+processExecutor({ foo: '' });
 
-processExecutor({ foo: 'bar' })
+// when a `transformer` passed to the process the `transformer` return type must match `CommandPayload`
+// and the executor `payload` type becomes `payload` type of the `transformer`
+const processExecutor = process(store, transformer);
+// Works as the `transformer` payload type is `{ foo: string }`
+processExecutor({ foo: '' });
+// Shouldn't work as `payload` does not match the `TransformerPayload` type
+processExecutor({ bar: 1, foo: 2 });
+processExecutor({ bar: 1, foo: '' });
 ```
 
 Each `Command` will be passed the result of the transformer as the `payload` for example: `{ bar: 1, foo: 2 }`
