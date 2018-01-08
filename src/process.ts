@@ -27,15 +27,16 @@ export interface Command<T = any, P extends object = object> {
 /**
  * Transformer function
  */
-export interface Transformer<P extends object = object, R extends object = object> {
-	(payload: P): R;
+export interface Transformer<P extends object = object, R = any> {
+	(payload: R): P;
 }
 
 /**
  * A process that returns an executor using a Store and Transformer
  */
-export interface Process<T = any, P extends object = object, R extends object = object> {
-	(store: Store<T>): ProcessExecutor<T, P, R>;
+export interface Process<T = any, P extends object = object> {
+	<R>(store: Store<T>, transformer: Transformer<P, R>): ProcessExecutor<T, P, R>;
+	(store: Store<T>): ProcessExecutor<T, P, P>;
 }
 
 /**
@@ -49,7 +50,7 @@ export interface ProcessError<T = any> {
 /**
  * Represents a successful result from a ProcessExecutor
  */
-export interface ProcessResult<T = any, R extends object = object> extends State<T> {
+export interface ProcessResult<T = any, P extends object = object> extends State<T> {
 	executor: <P extends object = object>(
 		process: Process<T, P>,
 		payload: P
@@ -57,15 +58,15 @@ export interface ProcessResult<T = any, R extends object = object> extends State
 	undo: Undo;
 	operations: PatchOperation<T>[];
 	apply: (operations: PatchOperation<T>[], invalidate?: boolean) => PatchOperation<T>[];
-	payload: R;
+	payload: P;
 	error?: ProcessError<T> | null;
 }
 
 /**
  * Runs a process for the given arguments.
  */
-export interface ProcessExecutor<T = any, P extends object = object, R extends object = object> {
-	(payload: P): Promise<ProcessResult<T, R>>;
+export interface ProcessExecutor<T = any, P extends object = object, R = any> {
+	(payload: R): Promise<ProcessResult<T, P>>;
 }
 
 /**
@@ -108,8 +109,7 @@ export function createCommandFactory<T, P extends object = object>(): CommandFac
  */
 export type Commands<T = any, P extends object = object> = (Command<T, P>[] | Command<T, P>)[];
 
-export interface ProcessOptions<P extends object = object, R extends object = object> {
-	transformer?: Transformer<P, R>;
+export interface ProcessOptions {
 	callback?: ProcessCallback;
 }
 
@@ -119,12 +119,13 @@ export interface ProcessOptions<P extends object = object, R extends object = ob
  * @param commands The commands for the process
  * @param callback Callback called after the process is completed
  */
-export function createProcess<T = any, P extends object = object, R extends object = P>(
-	commands: Commands<T, R>,
-	{ transformer, callback }: ProcessOptions<P, R> = {}
-): Process<T, P, R> {
-	transformer = transformer ? transformer : (payload: any): R => payload as R;
-	return (store: Store<T>): ProcessExecutor<T, P, R> => {
+export function createProcess<T = any, P extends object = object>(
+	commands: Commands<T, P>,
+	{ callback }: ProcessOptions = {}
+): Process<T, P> {
+	function processExecutor<R>(store: Store<T>, transformer: Transformer<P>): ProcessExecutor<T, P, R>;
+	function processExecutor<R>(store: Store<T>): ProcessExecutor<T, P, P>;
+	function processExecutor(store: Store<T>, transformer?: Transformer<P>): ProcessExecutor<T, any, any> {
 		const { apply, get, path, at } = store;
 		function executor<P extends object = object>(
 			process: Process<T, P>,
@@ -133,7 +134,7 @@ export function createProcess<T = any, P extends object = object, R extends obje
 			return process(store)(payload);
 		}
 
-		return async (executorPayload: P): Promise<ProcessResult<T, R>> => {
+		return async (executorPayload: P): Promise<ProcessResult<T, P>> => {
 			const undoOperations: PatchOperation[] = [];
 			const operations: PatchOperation[] = [];
 			const commandsCopy = [...commands];
@@ -143,7 +144,7 @@ export function createProcess<T = any, P extends object = object, R extends obje
 
 			let command = commandsCopy.shift();
 			let error: ProcessError | null = null;
-			const payload = transformer(executorPayload);
+			const payload = transformer ? transformer(executorPayload) : executorPayload;
 			try {
 				while (command) {
 					let results = [];
@@ -173,7 +174,8 @@ export function createProcess<T = any, P extends object = object, R extends obje
 			callback && callback(error, { operations, undo, apply, at, get, path, executor, payload });
 			return Promise.resolve({ error, operations, undo, apply, at, get, path, executor, payload });
 		};
-	};
+	}
+	return processExecutor;
 }
 
 /**

@@ -130,16 +130,21 @@ describe('process', () => {
 	});
 
 	it('can use a transformer for the arguments passed to the process executor', () => {
-		const process = createProcess<any, { foo: string }>(
-			[testCommandFactory('foo'), testCommandFactory('bar'), testCommandFactory('baz')],
-			{
-				transformer: () => {
-					return { foo: 'changed' };
-				}
-			}
-		);
-		const processExecutor = process(store);
-		processExecutor({ foo: 'payload' });
+		const process = createProcess<any, { foo: string }>([
+			testCommandFactory('foo'),
+			testCommandFactory('bar'),
+			testCommandFactory('baz')
+		]);
+		const processExecutorOne = process(store, (payload: { foo: number }) => {
+			return { foo: 'changed' };
+		});
+
+		const processExecutorTwo = process(store);
+
+		processExecutorTwo({ foo: '' });
+		processExecutorOne({ foo: 1 });
+		// processExecutorOne({ foo: '' }); // doesn't compile
+
 		const foo = store.get(store.path('foo'));
 		const bar = store.get(store.path('bar'));
 		const baz = store.get(store.path('baz'));
@@ -206,13 +211,12 @@ describe('process', () => {
 			};
 		};
 
-		// commandOne expects { bar: string }
-		const processOne = createProcess([commandOne], { transformer: transformerOne });
-		// createProcess([commandOne, commandTwo], { transformer: transformerOne }); // compile error
-
-		const processTwo = createProcess([commandOne, commandTwo], { transformer: transformerTwo });
-		const processOneResult = processOne(store)({ foo: '' });
-		const processTwoResult = processTwo(store)({ foo: 3 });
+		const processOne = createProcess([commandOne]);
+		const processTwo = createProcess<any, { bar: number; foo: number }>([commandOne, commandTwo]);
+		const processOneResult = processOne(store, transformerOne)({ foo: '' });
+		// processTwo(store, transformerOne); // compile error
+		const processTwoResult = processTwo(store, transformerTwo)({ foo: 3 });
+		// processTwo(store)({ foo: 3 }); // compile error
 		processOneResult.then((result) => {
 			result.payload.bar.toPrecision();
 			// result.payload.bar.toUpperCase(); // compile error
