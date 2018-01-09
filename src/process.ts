@@ -14,7 +14,7 @@ export interface CommandRequest<T = any, P extends object = object> extends Stat
  * verify the type of multiple commands without explicitly specifying the generic for each command
  */
 export interface CommandFactory<T = any, P extends object = object> {
-	(command: Command<T, P>): Command<T, P>;
+	<R extends object = P>(command: Command<T, R>): Command<T, R>;
 }
 
 /**
@@ -47,14 +47,20 @@ export interface ProcessError<T = any> {
 	command?: Command<T, any>[] | Command<T, any>;
 }
 
+export interface ProcessResultExecutor<T = any> {
+	<P extends object = object, R extends object = object>(
+		process: Process<T, P>,
+		payload: R,
+		transformer: Transformer<P, R>
+	): Promise<ProcessResult<T, P> | ProcessError<T>>;
+	<P extends object = object>(process: Process<T, P>, payload: P): Promise<ProcessResult<T, P> | ProcessError<T>>;
+}
+
 /**
  * Represents a successful result from a ProcessExecutor
  */
 export interface ProcessResult<T = any, P extends object = object> extends State<T> {
-	executor: <P extends object = object>(
-		process: Process<T, P>,
-		payload: P
-	) => Promise<ProcessResult<T> | ProcessError<T>>;
+	executor: ProcessResultExecutor<T>;
 	undo: Undo;
 	operations: PatchOperation<T>[];
 	apply: (operations: PatchOperation<T>[], invalidate?: boolean) => PatchOperation<T>[];
@@ -101,7 +107,7 @@ export interface CreateProcess<T = any, P extends object = object> {
  * Creates a command factory with the specified type
  */
 export function createCommandFactory<T, P extends object = object>(): CommandFactory<T, P> {
-	return (command: Command<T, P>) => command;
+	return <R extends object = P>(command: Command<T, R>) => command;
 }
 
 /**
@@ -123,13 +129,12 @@ export function createProcess<T = any, P extends object = object>(
 	commands: Commands<T, P>,
 	{ callback }: ProcessOptions = {}
 ): Process<T, P> {
-	function processExecutor<R>(store: Store<T>, transformer: Transformer<P>): ProcessExecutor<T, P, R>;
-	function processExecutor<R>(store: Store<T>): ProcessExecutor<T, P, P>;
 	function processExecutor(store: Store<T>, transformer?: Transformer<P>): ProcessExecutor<T, any, any> {
 		const { apply, get, path, at } = store;
-		function executor<P extends object = object>(
-			process: Process<T, P>,
-			payload: P
+		function executor(
+			process: Process,
+			payload: any,
+			transformer?: Transformer
 		): Promise<ProcessResult | ProcessError> {
 			return process(store)(payload);
 		}

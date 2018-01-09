@@ -157,7 +157,7 @@ describe('process', () => {
 		const createCommand = createCommandFactory<{ foo: string }, { foo: string }>();
 
 		const command = createCommand(({ get, path, payload }) => {
-			// get(path('bar')); shouldn't compile
+			// get(path('bar')); // shouldn't compile
 			payload.foo;
 			// payload.bar; // shouldn't compile
 			get(path('foo'));
@@ -219,6 +219,10 @@ describe('process', () => {
 		// processTwo(store)({ foo: 3 }); // compile error
 		processOneResult.then((result) => {
 			result.payload.bar.toPrecision();
+			result.executor(processTwo, { foo: 3, bar: 1 });
+			// result.executor(processTwo, { foo: 3, bar: '' }); // compile error
+			result.executor(processTwo, { foo: 1 }, transformerTwo);
+			// result.executor(processTwo, { foo: '' }, transformerTwo); // compile error
 			// result.payload.bar.toUpperCase(); // compile error
 			// result.payload.foo; // compile error
 		});
