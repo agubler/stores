@@ -101,7 +101,7 @@ function calculateCountsCommand({ get, path }: CommandRequest) {
 }
 ```
 
-A `Command`, or the `CommandRequest` argument to it, can be provided with a generics that indicates the type of the state of the store they are intended to target and the payload that will be passed. This will provide type checking for all calls to `path` and `at` and usages of `payload`, ensuring that the operations will be targeting real properties of the store, and providing type inference for the return type of `get`.
+A `Command`, or the `CommandRequest` argument to it, can be provided with generics that indicate the type of the state of the store they are intended to target and the payload that will be passed. This will provide type checking for all calls to `path` and `at` and usages of `payload`, ensuring that the operations will be targeting real properties of the store, and providing type inference for the return type of `get`.
 
 ```ts
 interface MyState {
@@ -279,6 +279,13 @@ executorTwo({ foo: 'foo' }); // compile error, as requires both `bar` and `foo`
 executorTwo({ foo: 'foo', bar: 'bar' }); // Yay, valid
 ```
 
+Alternatively the payload can be typed at command creation
+
+```ts
+const createCommandOne = createCommandFactory<MyState>();
+const commandOne = createCommandOne<{ foo: string }>(({ get, path, payload }) => []);
+```
+
 ## How does this differ from Redux
 
 Although Dojo 2 stores is a big atom state store, you never get access to the entire state object. To access the sections of state that are needed we use pointers to return the slice of state that is needed i.e. `path('path', 'to', 'state')`. State is never directly updated by the user, with state changes only being processed by the operations returned by commands.
@@ -334,7 +341,7 @@ The `undo` function will rollback all the operations that were performed by the 
 
 ### Transforming Executor Arguments
 
-An optional `transformer` can be passed to a process that is be used to transform the `executor`s payload to the `command` payload type. The return type of the `transformer` must match the `command` `payload` type of the `process`. The argument type of the `executor` is inferred from transformers `payload` type.
+An optional `transformer` can be passed to a process that is used to transform the `executor`s payload to the `command` payload type. The return type of the `transformer` must match the `command` `payload` type of the `process`. The argument type of the `executor` is inferred from transformers `payload` type.
 
 ```ts
 interface CommandPayload {
