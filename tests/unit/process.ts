@@ -14,6 +14,7 @@ import {
 	ProcessResult
 } from './../../src/process';
 import { Store } from './../../src/Store';
+import { replace } from '../../src/state/operations';
 
 let store: Store;
 let promises: Promise<any>[] = [];
@@ -329,5 +330,91 @@ describe('process', () => {
 		assert.strictEqual(results[2], 'callback two');
 		assert.strictEqual(results[3], 'callback one');
 		assert.deepEqual(store.get(store.path('logs')), [['/foo', '/bar'], ['/foo', '/bar']]);
+	});
+
+	it('Should support commands being returned from commands', () => {
+		interface State {
+			foo: string;
+			bar: string;
+			baz: string;
+			qux: string;
+			other: boolean;
+		}
+		const commandFactory = createCommandFactory<State>();
+
+		let callStack: string[] = [];
+
+		const commandFoo = commandFactory(({ path, get }) => {
+			callStack.push('foo');
+			const value = get(path('foo')) || '';
+			return [replace(path('foo'), `${value}-foo`)];
+		});
+
+		const commandBar = commandFactory(({ path, get }) => {
+			callStack.push('bar');
+			const value = get(path('bar')) || '';
+			return [replace(path('bar'), `${value}-bar`)];
+		});
+
+		const commandBaz = commandFactory(({ path, get }) => {
+			callStack.push('baz');
+			const value = get(path('baz')) || '';
+			return [replace(path('baz'), `${value}-baz`)];
+		});
+
+		const commandQux = commandFactory(({ path, get }) => {
+			callStack.push('qux');
+			const value = get(path('qux')) || '';
+			return [replace(path('qux'), `${value}-qux`)];
+		});
+
+		const commandBazQux = commandFactory(() => {
+			callStack.push('bazqux');
+			return [commandBaz, commandQux];
+		});
+
+		const commandMega = commandFactory(() => {
+			callStack.push('mega');
+			return [commandFoo, commandBar, commandBazQux];
+		});
+
+		let store = new Store<State>();
+		let process = createProcess([commandMega]);
+		process(store)({});
+		assert.deepEqual(callStack, ['mega', 'foo', 'bar', 'bazqux', 'baz', 'qux']);
+		let foo = store.get(store.path('foo'));
+		let bar = store.get(store.path('bar'));
+		let baz = store.get(store.path('baz'));
+		let qux = store.get(store.path('qux'));
+		assert.deepEqual(foo, '-foo');
+		assert.deepEqual(bar, '-bar');
+		assert.deepEqual(baz, '-baz');
+		assert.deepEqual(qux, '-qux');
+		callStack = [];
+		process = createProcess([commandBazQux, [commandFoo, commandMega], commandBaz]);
+		store = new Store<State>();
+		return process(store)({}).then(() => {
+			assert.deepEqual(callStack, [
+				'bazqux',
+				'baz',
+				'qux',
+				'foo',
+				'mega',
+				'foo',
+				'bar',
+				'bazqux',
+				'baz',
+				'qux',
+				'baz'
+			]);
+			foo = store.get(store.path('foo'));
+			bar = store.get(store.path('bar'));
+			baz = store.get(store.path('baz'));
+			qux = store.get(store.path('qux'));
+			assert.deepEqual(foo, '-foo');
+			assert.deepEqual(bar, '-bar');
+			assert.deepEqual(baz, '-baz-baz-baz');
+			assert.deepEqual(qux, '-qux-qux');
+		});
 	});
 });

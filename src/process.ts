@@ -24,11 +24,25 @@ export interface CommandFactory<T = any, P extends object = DefaultPayload> {
 	<R extends object = P>(command: Command<T, R>): Command<T, R>;
 }
 
+function isCommandArray<T = any, P extends object = DefaultPayload>(value: any): value is Command<T, P>[] {
+	return value && typeof value[0] === 'function';
+}
+
+/**
+ *
+ */
+export type OperationResponse<T = any> = Promise<PatchOperation<T>[]> | PatchOperation<T>[];
+
+/**
+ *
+ */
+export type CommandResponse<T = any, P extends object = DefaultPayload> = Promise<Command<T, P>[]> | Command<T, P>[];
+
 /**
  * Command that returns patch operations based on the command request
  */
 export interface Command<T = any, P extends object = DefaultPayload> {
-	(request: CommandRequest<T, P>): Promise<PatchOperation<T>[]> | PatchOperation<T>[];
+	(request: CommandRequest<T, P>): Promise<PatchOperation<T>[]> | PatchOperation<T>[] | Command<T, P>[];
 }
 
 /**
@@ -159,16 +173,30 @@ export function createProcess<T = any, P extends object = DefaultPayload>(
 			const payload = transformer ? transformer(executorPayload) : executorPayload;
 			try {
 				while (command) {
-					let results = [];
+					let results: PatchOperation<T>[][] = [];
 					if (Array.isArray(command)) {
-						results = command.map((commandFunction) => commandFunction({ at, get, path, payload }));
-						results = await Promise.all(results);
+						let commandArrayResult = [];
+						let commandFunction = command.shift();
+						while (commandFunction) {
+							const result = commandFunction({ at, get, path, payload });
+							if (isCommandArray<T, P>(result)) {
+								command.unshift(...result);
+							} else {
+								commandArrayResult.push(result);
+							}
+							commandFunction = command.shift();
+						}
+						results = await Promise.all(commandArrayResult);
 					} else {
 						let result = command({ at, get, path, payload });
-						if (isThenable(result)) {
-							result = await result;
+						if (isCommandArray<T, P>(result)) {
+							commandsCopy.unshift(...result);
+						} else {
+							if (isThenable(result)) {
+								result = await result;
+							}
+							results = [result];
 						}
-						results = [result];
 					}
 
 					for (let i = 0; i < results.length; i++) {
