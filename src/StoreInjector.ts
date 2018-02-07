@@ -4,7 +4,7 @@ import { w } from '@dojo/widget-core/d';
 import { handleDecorator } from '@dojo/widget-core/decorators/handleDecorator';
 import { beforeProperties } from '@dojo/widget-core/decorators/beforeProperties';
 import { alwaysRender } from '@dojo/widget-core/decorators/alwaysRender';
-import { RegistryLabel, Constructor } from '@dojo/widget-core/interfaces';
+import { RegistryLabel, Constructor, DNode } from '@dojo/widget-core/interfaces';
 import { Store } from './Store';
 import { Injector } from '@dojo/widget-core/Injector';
 
@@ -29,7 +29,7 @@ export interface StoreInjectConfig<S = any> {
 	paths?: StoreContainerPath<S>[];
 }
 
-export type StoreContainer<T extends WidgetBase> = Constructor<WidgetBase<Partial<T['properties']>>>;
+export type StoreContainer<T extends WidgetBase> = Constructor<WidgetBase<Partial<T['properties']>, T['children'][0]>>;
 
 /**
  * Decorator that registers a store injector with a container based on paths when provided
@@ -92,15 +92,15 @@ export class StoreInjector<T = any> extends Injector {
  * Creates a typed `StoreContainer` for State generic.
  */
 export function createStoreContainer<S>() {
-	return function<W extends WidgetBase>(
+	return function<W extends WidgetBase<any, any>>(
 		component: Constructor<W> | RegistryLabel,
 		name: RegistryLabel,
 		{ paths, getProperties }: { paths?: StoreContainerPath<S>[]; getProperties: GetProperties<Store<S>> }
 	): StoreContainer<W> {
 		@alwaysRender()
 		@storeInject({ name, paths, getProperties })
-		class WidgetContainer extends WidgetBase<Partial<W['properties']>> {
-			protected render() {
+		class WidgetContainer extends WidgetBase<Partial<W['properties']>, W['children'][0]> {
+			protected render(): DNode {
 				return w(component, this.properties, this.children);
 			}
 		}
