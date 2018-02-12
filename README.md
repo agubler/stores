@@ -410,7 +410,7 @@ const Container = Container(WidgetBase, 'state', { getProperties(store: Store<St
 }});
 ```
 
-To provide a typed container for the stores state, use the `createStoreContainer` function from `@dojo/stores/StoreInjector` passing in the state interface as a generic and export this to be available throughout your application.
+To provide a typed container for the store's state, use the `createStoreContainer` function from `@dojo/stores/StoreInjector` passing in the state interface as a generic and then export returned `Container` to be available throughout your application.
 
 ```ts
 interface State {
