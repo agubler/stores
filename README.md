@@ -385,7 +385,7 @@ Store data can be connected to widgets within your application using the [Contai
 ```ts
 import { WidgetBase } from '@dojo/widget-core/WidgetBase';
 import { Store } from '@dojo/stores/Stores';
-import { StoreInjector, StoreContainer } from '@dojo/stores/StoreInjector';
+import { StoreContainer } from '@dojo/stores/StoreInjector';
 
 interface State {
 	foo: string;
@@ -395,21 +395,21 @@ interface State {
 }
 
 // Will only invalidate when the foo property is changed
-const Container = Container(WidgetBase, 'state', { paths: [ [ 'foo' ] ], getProperties(store: Store<State>) {
+const Container = StoreContainer<State>(WidgetBase, 'state', { paths: [ [ 'foo' ] ], getProperties(store: Store<State>) {
 	return {
 		foo: store.get(store.path('foo'))
 	}
 }});
 
 // Catch all, will invalidate if _any_ state changes in the store even if the container is not interested in the changes
-const Container = Container(WidgetBase, 'state', { getProperties(store: Store<State>) {
+const Container = StoreContainer<State>(WidgetBase, 'state', { getProperties(store: Store<State>) {
 	return {
 		foo: store.get(store.path('foo'))
 	}
 }});
 ```
 
-To provide a typed container for the store's state, use the `createStoreContainer` function from `@dojo/stores/StoreInjector` passing in the state interface as a generic and then export the returned `Container` to be available throughout your application.
+To provide a create typed container for the store's state, use the `createStoreContainer` function from `@dojo/stores/StoreInjector` passing in the state interface as a generic and then export the returned `Container` to be available throughout your application.
 
 ```ts
 interface State {
