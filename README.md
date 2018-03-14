@@ -409,14 +409,14 @@ const Container = StoreContainer<State>(WidgetBase, 'state', { getProperties(sto
 }});
 ```
 
-To provide a create typed container for the store's state, use the `createStoreContainer` function from `@dojo/stores/StoreInjector` passing in the state interface as a generic and then export the returned `Container` to be available throughout your application.
+Instead of typing `StoreContainer` for every usage, it is possible to create a pre-typed StoreContainer that can be used across your application. To do this use `createStoreContainer` from `@dojo/stores/StoreInjector` passing the stores state interface as the generic argument. The result of this can be exported and used across your application.
 
 ```ts
 interface State {
 	foo: string;
 }
 
-const StoreContainer = createStoreContainer<State>();
+export const StoreContainer = createStoreContainer<State>();
 ```
 
 ### Transforming Executor Arguments
