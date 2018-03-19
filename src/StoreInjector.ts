@@ -95,7 +95,7 @@ export class StoreInjector<T = any> extends Injector {
 	}
 }
 
-export function StoreContainer<S, W extends WidgetBase<any, any> = WidgetBase<any, any>>(
+export function StoreContainer<S = any, W extends WidgetBase<any, any> = WidgetBase<any, any>>(
 	component: Constructor<W> | RegistryLabel,
 	name: RegistryLabel,
 	{ paths, getProperties }: { paths?: StoreContainerPath<S>[]; getProperties: GetProperties<Store<S>> }
