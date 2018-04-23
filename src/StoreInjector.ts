@@ -43,16 +43,15 @@ export function storeInject<S>(config: StoreInjectConfig<S>) {
 			const injectorItem = this.registry.getInjector<Store<S>>(name);
 			if (injectorItem) {
 				const { injector } = injectorItem;
-				const storeInjector = injector();
+				const store = injector();
 				const registeredInjectors = registeredInjectorsMap.get(this) || [];
 				if (registeredInjectors.length === 0) {
 					registeredInjectorsMap.set(this, registeredInjectors);
 				}
 				if (registeredInjectors.indexOf(injectorItem) === -1) {
 					if (paths) {
-						const handle = storeInjector.onChange(
-							paths.map((path: any) => storeInjector.path(path.join('/'))),
-							() => this.invalidate()
+						const handle = store.onChange(paths.map((path: any) => store.path(path.join('/'))), () =>
+							this.invalidate()
 						);
 						this.own({
 							destroy: () => {
@@ -61,14 +60,14 @@ export function storeInject<S>(config: StoreInjectConfig<S>) {
 						});
 					} else {
 						this.own(
-							storeInjector.on('invalidate', () => {
+							store.on('invalidate', () => {
 								this.invalidate();
 							})
 						);
 					}
 					registeredInjectors.push(injectorItem);
 				}
-				return getProperties(storeInjector, properties);
+				return getProperties(store, properties);
 			}
 		})(target);
 	});
