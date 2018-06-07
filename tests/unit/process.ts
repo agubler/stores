@@ -311,7 +311,7 @@ describe('process', () => {
 		assert.deepEqual(store.get(store.path('logs')), [['/foo', '/bar'], ['/foo', '/bar']]);
 	});
 
-	it('process can be undone using the undo function provided via the callback', async () => {
+	it('process can be undone using the undo function provided via the callback', () => {
 		const command = ({ payload }: CommandRequest): PatchOperation[] => {
 			return [{ op: OperationType.REPLACE, path: new Pointer('/foo'), value: 'bar' }];
 		};
@@ -323,6 +323,6 @@ describe('process', () => {
 			assert.isUndefined(foo);
 		});
 		const processExecutor = process(store);
-		await processExecutor({}).catch(() => assert.fail());
+		return processExecutor({});
 	});
 });
