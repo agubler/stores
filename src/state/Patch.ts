@@ -89,25 +89,34 @@ export function isEqual(a: any, b: any): boolean {
 	}
 }
 
-function inverse(operation: PatchOperation, state: any): any[] {
+function inverse(operation: PatchOperation, state: any): PatchOperation[] {
 	if (operation.op === OperationType.ADD) {
-		const op = {
+		const op: RemovePatchOperation = {
 			op: OperationType.REMOVE,
 			path: operation.path
 		};
-		const test = {
+		const test: TestPatchOperation = {
 			op: OperationType.TEST,
 			path: operation.path,
 			value: operation.value
 		};
 		return [test, op];
 	} else if (operation.op === OperationType.REPLACE) {
-		const op = {
-			op: OperationType.REPLACE,
-			path: operation.path,
-			value: operation.path.get(state)
-		};
-		const test = {
+		const value = operation.path.get(state);
+		let op: RemovePatchOperation | ReplacePatchOperation;
+		if (value === undefined) {
+			op = {
+				op: OperationType.REMOVE,
+				path: operation.path
+			};
+		} else {
+			op = {
+				op: OperationType.REPLACE,
+				path: operation.path,
+				value: operation.path.get(state)
+			};
+		}
+		const test: TestPatchOperation = {
 			op: OperationType.TEST,
 			path: operation.path,
 			value: operation.value
@@ -149,13 +158,17 @@ export class Patch<T = any> {
 				case OperationType.TEST:
 					const result = test(pointerTarget, next.value);
 					if (!result) {
-						throw new Error('Test operation failure. Unable to apply any operations.');
+						throw new Error(
+							`Test operation failure. Unable to apply ${JSON.stringify(
+								next
+							)} operation against ${JSON.stringify(pointerTarget.object)}.`
+						);
 					}
 					return patchedObject;
 				default:
 					throw new Error('Unknown operation');
 			}
-			undoOperations = [...undoOperations, ...inverse(next, patchedObject)];
+			undoOperations = [...inverse(next, patchedObject), ...undoOperations];
 			return object;
 		}, object);
 		return { object: patchedObject, undoOperations };
