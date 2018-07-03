@@ -34,6 +34,7 @@ export function walk(segments: string[], object: any, clone = true, continueOnUn
 			let target = pointerTarget.target[segment];
 
 			if (target === undefined && !continueOnUndefined) {
+				pointerTarget.target = undefined;
 				return pointerTarget;
 			}
 
