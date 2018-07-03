@@ -158,11 +158,7 @@ export class Patch<T = any> {
 				case OperationType.TEST:
 					const result = test(pointerTarget, next.value);
 					if (!result) {
-						throw new Error(
-							`Test operation failure. Unable to apply ${JSON.stringify(
-								next
-							)} operation against ${JSON.stringify(pointerTarget.object)}.`
-						);
+						throw new Error('Test operation failure. Unable to apply any operations.');
 					}
 					return patchedObject;
 				default:
