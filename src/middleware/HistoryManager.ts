@@ -53,13 +53,13 @@ export class HistoryManager {
 		return false;
 	}
 
-	public redo(store: Store) {
+	public async redo(store: Store) {
 		const stacks = this._storeMap.get(store);
 		if (stacks) {
 			const { history, redo, undo } = stacks;
 			if (redo.length) {
 				const { id, operations } = redo.pop();
-				const result = store.apply(operations);
+				const result = await store.apply(operations);
 				history.push({ id, operations });
 				undo.push({ id, operations: result });
 				this._storeMap.set(store, { history, undo, redo });
@@ -67,23 +67,23 @@ export class HistoryManager {
 		}
 	}
 
-	public undo(store: Store) {
+	public async undo(store: Store) {
 		const stacks = this._storeMap.get(store);
 		if (stacks) {
 			const { history, undo, redo } = stacks;
 			if (undo.length && history.length) {
 				const { id, operations } = undo.pop();
 				history.pop();
-				const result = store.apply(operations);
+				const result = await store.apply(operations);
 				redo.push({ id, operations: result });
 				this._storeMap.set(store, { history, undo, redo });
 			}
 		}
 	}
 
-	public deserialize(store: Store, data: HistoryData) {
+	public async deserialize(store: Store, data: HistoryData) {
 		const { history, redo } = data;
-		history.forEach(({ id, operations }: HistoryOperation) => {
+		await history.forEach(async ({ id, operations }: HistoryOperation) => {
 			operations = operations.map((operation) => {
 				operation.path = new Pointer(String(operation.path));
 				return operation;
@@ -93,7 +93,7 @@ export class HistoryManager {
 			if (process) {
 				callback = process[2];
 			}
-			processExecutor(id, [() => operations], store, callback, undefined)({});
+			await processExecutor(id, [() => operations], store, callback, undefined)({});
 		});
 		const stacks = this._storeMap.get(store);
 		redo.forEach(({ id, operations }: HistoryOperation) => {

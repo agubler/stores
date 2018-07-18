@@ -13,6 +13,21 @@ import { replace } from '../../src/state/operations';
 interface State {
 	foo: string;
 	bar: string;
+	qux: {
+		baz: number;
+		foobar: number;
+		bar: {
+			foo: {
+				foobar: {
+					baz: {
+						barbaz: {
+							res: number;
+						};
+					};
+				};
+			};
+		};
+	};
 }
 
 const commandFactory = createCommandFactory<State>();
@@ -24,6 +39,20 @@ const barCommand = commandFactory(({ get, path }) => {
 	const currentFoo = get(path('bar'));
 	return [replace(path('bar'), `${currentFoo}bar`)];
 });
+const bazCommand = commandFactory(({ get, path }) => {
+	const currentBaz = get(path('qux', 'baz')) || 0;
+	return [replace(path('qux', 'baz'), currentBaz + 1)];
+});
+const quxCommand = commandFactory(({ get, path }) => {
+	return [replace(path('qux'), { baz: 100 })];
+});
+const fooBarCommand = commandFactory(({ get, path }) => {
+	const currentFooBar = get(path('qux', 'foobar')) || 0;
+	return [replace(path('qux', 'foobar'), currentFooBar)];
+});
+const deepCommand = commandFactory(({ get, path }) => {
+	return [replace(path(path('qux', 'bar', 'foo', 'foobar', 'baz'), 'barbaz', 'res'), 0)];
+});
 
 const TypedStoreContainer = createStoreContainer<State>();
 
@@ -32,16 +61,24 @@ describe('StoreInjector', () => {
 	let registry: Registry;
 	let fooProcess: Process;
 	let barProcess: Process;
+	let bazProcess: Process;
+	let quxProcess: Process;
+	let fooBarProcess: Process;
+	let deepProcess: Process;
 
 	beforeEach(() => {
 		registry = new Registry();
 		store = new Store<State>();
 		fooProcess = createProcess('foo', [fooCommand]);
 		barProcess = createProcess('bar', [barCommand]);
+		bazProcess = createProcess('baz', [bazCommand]);
+		quxProcess = createProcess('qux', [quxCommand]);
+		fooBarProcess = createProcess('foobar', [fooBarCommand]);
+		deepProcess = createProcess('deep', [deepCommand]);
 	});
 
 	describe('storeInject', () => {
-		it('Should invalidate every time the payload invalidate when no path is passed', () => {
+		it('Should invalidate every time the payload invalidate when no path is passed', async () => {
 			@storeInject<State>({
 				name: 'state',
 				getProperties: (store) => {
@@ -57,16 +94,16 @@ describe('StoreInjector', () => {
 			widget.__setProperties__({});
 			const invalidateSpy = spy(widget, 'invalidate');
 			assert.strictEqual(widget.properties.foo, undefined);
-			fooProcess(store)({});
+			await fooProcess(store)({});
 			assert.isTrue(invalidateSpy.calledOnce);
 			widget.__setProperties__({});
 			assert.isTrue(invalidateSpy.calledTwice);
 			assert.strictEqual(widget.properties.foo, 'foo');
-			barProcess(store)({});
+			await barProcess(store)({});
 			assert.isTrue(invalidateSpy.calledThrice);
 		});
 
-		it('Should only invalidate when the path passed is changed', () => {
+		it('Should only invalidate when the path passed is changed', async () => {
 			@storeInject<State>({
 				name: 'state',
 				paths: [['foo']],
@@ -83,16 +120,50 @@ describe('StoreInjector', () => {
 			widget.__setProperties__({});
 			const invalidateSpy = spy(widget, 'invalidate');
 			assert.strictEqual(widget.properties.foo, undefined);
-			fooProcess(store)({});
+			await fooProcess(store)({});
 			assert.isTrue(invalidateSpy.calledOnce);
 			widget.__setProperties__({});
 			assert.isTrue(invalidateSpy.calledTwice);
 			assert.strictEqual(widget.properties.foo, 'foo');
-			barProcess(store)({});
+			await barProcess(store)({});
 			assert.isTrue(invalidateSpy.calledTwice);
 		});
 
-		it('invalidate listeners are removed when widget is destroyed', () => {
+		it('Should only invalidate when the path passed is changed using path function', async () => {
+			@storeInject<State>({
+				name: 'state',
+				paths: (path) => {
+					return [path('qux', 'baz'), path(path('qux', 'bar', 'foo', 'foobar', 'baz'), 'barbaz', 'res')];
+				},
+				getProperties: (store) => {
+					return {
+						baz: store.get(store.path('qux', 'baz'))
+					};
+				}
+			})
+			class TestWidget extends WidgetBase<any> {}
+			const widget = new TestWidget();
+			registry.defineInjector('state', () => () => store);
+			widget.__setCoreProperties__({ bind: widget, baseRegistry: registry });
+			widget.__setProperties__({});
+			const invalidateSpy = spy(widget, 'invalidate');
+			assert.strictEqual(widget.properties.foo, undefined);
+			await bazProcess(store)({});
+			assert.isTrue(invalidateSpy.calledOnce);
+			widget.__setProperties__({});
+			assert.isTrue(invalidateSpy.calledTwice);
+			assert.strictEqual(widget.properties.baz, 1);
+			await barProcess(store)({});
+			assert.isTrue(invalidateSpy.calledTwice);
+			await quxProcess(store)({});
+			assert.isTrue(invalidateSpy.calledThrice);
+			await fooBarProcess(store)({});
+			assert.isTrue(invalidateSpy.calledThrice);
+			await deepProcess(store)({});
+			assert.strictEqual(invalidateSpy.callCount, 4);
+		});
+
+		it('invalidate listeners are removed when widget is destroyed', async () => {
 			let invalidateCounter = 0;
 			@storeInject<State>({
 				name: 'state',
@@ -115,16 +186,16 @@ describe('StoreInjector', () => {
 			registry.defineInjector('state', () => () => store);
 			widget.__setCoreProperties__({ bind: widget, baseRegistry: registry });
 			widget.__setProperties__({});
-			fooProcess(store)({});
+			await fooProcess(store)({});
 			assert.strictEqual(invalidateCounter, 3);
-			barProcess(store)({});
+			await barProcess(store)({});
 			assert.strictEqual(invalidateCounter, 4);
 			widget.destroy();
-			barProcess(store)({});
+			await barProcess(store)({});
 			assert.strictEqual(invalidateCounter, 4);
 		});
 
-		it('path based invalidate listeners are removed when widget is destroyed', () => {
+		it('path based invalidate listeners are removed when widget is destroyed', async () => {
 			let invalidateCounter = 0;
 			@storeInject<State>({
 				name: 'state',
@@ -148,12 +219,12 @@ describe('StoreInjector', () => {
 			registry.defineInjector('state', () => () => store);
 			widget.__setCoreProperties__({ bind: widget, baseRegistry: registry });
 			widget.__setProperties__({});
-			fooProcess(store)({});
+			await fooProcess(store)({});
 			assert.strictEqual(invalidateCounter, 3);
-			fooProcess(store)({});
+			await fooProcess(store)({});
 			assert.strictEqual(invalidateCounter, 4);
 			widget.destroy();
-			fooProcess(store)({});
+			await fooProcess(store)({});
 			assert.strictEqual(invalidateCounter, 4);
 		});
 	});

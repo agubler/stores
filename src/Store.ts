@@ -10,8 +10,8 @@ import Map from '@dojo/shim/Map';
  */
 export interface Path<M, T> {
 	path: string;
-	state: M;
 	value: T;
+	state: M;
 }
 
 /**
@@ -21,22 +21,27 @@ export interface Path<M, T> {
  */
 export interface State<M> {
 	get<S>(path: Path<M, S>): S;
-	path<T, P0 extends keyof T>(path: Path<M, T>, a: P0): Path<M, T[P0]>;
-	path<T, P0 extends keyof T, P1 extends keyof T[P0]>(path: Path<M, T>, a: P0, b: P1): Path<M, T[P0][P1]>;
-	path<T, P0 extends keyof T, P1 extends keyof T[P0], P2 extends keyof T[P0][P1]>(
+	at<S extends Path<M, Array<any>>>(path: S, index: number): Path<M, S['value'][0]>;
+	path: StatePaths<M>;
+}
+
+export interface StatePaths<M> {
+	<T, P0 extends keyof T>(path: Path<M, T>, a: P0): Path<M, T[P0]>;
+	<T, P0 extends keyof T, P1 extends keyof T[P0]>(path: Path<M, T>, a: P0, b: P1): Path<M, T[P0][P1]>;
+	<T, P0 extends keyof T, P1 extends keyof T[P0], P2 extends keyof T[P0][P1]>(
 		path: Path<M, T>,
 		a: P0,
 		b: P1,
 		c: P2
 	): Path<M, T[P0][P1][P2]>;
-	path<T, P0 extends keyof T, P1 extends keyof T[P0], P2 extends keyof T[P0][P1], P3 extends keyof T[P0][P1][P2]>(
+	<T, P0 extends keyof T, P1 extends keyof T[P0], P2 extends keyof T[P0][P1], P3 extends keyof T[P0][P1][P2]>(
 		path: Path<M, T>,
 		a: P0,
 		b: P1,
 		c: P2,
 		d: P3
 	): Path<M, T[P0][P1][P2][P3]>;
-	path<
+	<
 		T,
 		P0 extends keyof T,
 		P1 extends keyof T[P0],
@@ -51,20 +56,19 @@ export interface State<M> {
 		d: P3,
 		e: P4
 	): Path<M, T[P0][P1][P2][P3][P4]>;
-	path<P0 extends keyof M>(a: P0): Path<M, M[P0]>;
-	path<P0 extends keyof M, P1 extends keyof M[P0]>(a: P0, b: P1): Path<M, M[P0][P1]>;
-	path<P0 extends keyof M, P1 extends keyof M[P0], P2 extends keyof M[P0][P1]>(
-		a: P0,
-		b: P1,
-		c: P2
-	): Path<M, M[P0][P1][P2]>;
-	path<P0 extends keyof M, P1 extends keyof M[P0], P2 extends keyof M[P0][P1], P3 extends keyof M[P0][P1][P2]>(
+	<P0 extends keyof M>(a: P0): Path<M, M[P0]>;
+	<P0 extends keyof M, P1 extends keyof M[P0]>(a: P0, b: P1): Path<M, M[P0][P1]>;
+	<P0 extends keyof M, P1 extends keyof M[P0], P2 extends keyof M[P0][P1]>(a: P0, b: P1, c: P2): Path<
+		M,
+		M[P0][P1][P2]
+	>;
+	<P0 extends keyof M, P1 extends keyof M[P0], P2 extends keyof M[P0][P1], P3 extends keyof M[P0][P1][P2]>(
 		a: P0,
 		b: P1,
 		c: P2,
 		d: P3
 	): Path<M, M[P0][P1][P2][P3]>;
-	path<
+	<
 		P0 extends keyof M,
 		P1 extends keyof M[P0],
 		P2 extends keyof M[P0][P1],
@@ -77,7 +81,6 @@ export interface State<M> {
 		d: P3,
 		e: P4
 	): Path<M, M[P0][P1][P2][P3][P4]>;
-	at<S extends Path<M, Array<any>>>(path: S, index: number): Path<M, S['value'][0]>;
 }
 
 interface OnChangeCallback {
@@ -107,17 +110,27 @@ export class Store<T = any> extends Evented implements State<T> {
 
 	private _callbackId = 0;
 
+	constructor(Adapter?: any) {
+		super();
+		if (Adapter) {
+			const adapter = new Adapter();
+			this.get = adapter.get.bind(adapter);
+			this.apply = adapter.apply.bind(adapter);
+		}
+	}
+
 	/**
 	 * Returns the state at a specific pointer path location.
 	 */
 	public get = <U = any>(path: Path<T, U>): U => {
-		return path.value;
+		const pointer = new Pointer(path.path);
+		return pointer.get(this._state);
 	};
 
 	/**
 	 * Applies store operations to state and returns the undo operations
 	 */
-	public apply = (operations: PatchOperation<T>[], invalidate: boolean = false): PatchOperation<T>[] => {
+	public apply = (operations: any[], invalidate: boolean = false): PatchOperation<T>[] => {
 		const patch = new Patch(operations);
 		const patchResult = patch.apply(this._state);
 		this._state = patchResult.object;
@@ -128,14 +141,9 @@ export class Store<T = any> extends Evented implements State<T> {
 	};
 
 	public at = <U = any>(path: Path<T, Array<U>>, index: number): Path<T, U> => {
-		const array = this.get(path);
-		const value = array && array[index];
-
 		return {
-			path: `${path.path}/${index}`,
-			state: path.state,
-			value
-		};
+			path: `${path.path}/${index}`
+		} as Path<T, U>;
 	};
 
 	public onChange = <U = any>(paths: Path<T, U> | Path<T, U>[], callback: () => void) => {
@@ -206,10 +214,8 @@ export class Store<T = any> extends Evented implements State<T> {
 		const pointer = new Pointer(hasMultipleSegments ? stringSegments : stringSegments[0] || '');
 
 		return {
-			path: pointer.path,
-			state: this._state,
-			value: pointer.get(this._state)
-		};
+			path: pointer.path
+		} as Path<T, any>;
 	};
 }
 

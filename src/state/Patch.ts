@@ -1,11 +1,6 @@
 import { Pointer, walk, PointerTarget } from './Pointer';
 
-export enum OperationType {
-	ADD = 'add',
-	REMOVE = 'remove',
-	REPLACE = 'replace',
-	TEST = 'test'
-}
+export type OperationType = 'add' | 'remove' | 'replace' | 'test';
 
 export interface BaseOperation<T = any, U = any> {
 	op: OperationType;
@@ -13,21 +8,21 @@ export interface BaseOperation<T = any, U = any> {
 }
 
 export interface AddPatchOperation<T = any, U = any> extends BaseOperation<T, U> {
-	op: OperationType.ADD;
+	op: 'add';
 	value: U;
 }
 
 export interface RemovePatchOperation<T = any, U = any> extends BaseOperation<T, U> {
-	op: OperationType.REMOVE;
+	op: 'remove';
 }
 
 export interface ReplacePatchOperation<T = any, U = any> extends BaseOperation<T, U> {
-	op: OperationType.REPLACE;
+	op: 'replace';
 	value: U;
 }
 
 export interface TestPatchOperation<T = any, U = any> extends BaseOperation<T, U> {
-	op: OperationType.TEST;
+	op: 'test';
 	value: U;
 }
 
@@ -90,34 +85,34 @@ export function isEqual(a: any, b: any): boolean {
 }
 
 function inverse(operation: PatchOperation, state: any): PatchOperation[] {
-	if (operation.op === OperationType.ADD) {
+	if (operation.op === 'add') {
 		const op: RemovePatchOperation = {
-			op: OperationType.REMOVE,
+			op: 'remove',
 			path: operation.path
 		};
 		const test: TestPatchOperation = {
-			op: OperationType.TEST,
+			op: 'test',
 			path: operation.path,
 			value: operation.value
 		};
 		return [test, op];
-	} else if (operation.op === OperationType.REPLACE) {
+	} else if (operation.op === 'replace') {
 		const value = operation.path.get(state);
 		let op: RemovePatchOperation | ReplacePatchOperation;
 		if (value === undefined) {
 			op = {
-				op: OperationType.REMOVE,
+				op: 'remove',
 				path: operation.path
 			};
 		} else {
 			op = {
-				op: OperationType.REPLACE,
+				op: 'replace',
 				path: operation.path,
 				value: operation.path.get(state)
 			};
 		}
 		const test: TestPatchOperation = {
-			op: OperationType.TEST,
+			op: 'test',
 			path: operation.path,
 			value: operation.value
 		};
@@ -125,7 +120,7 @@ function inverse(operation: PatchOperation, state: any): PatchOperation[] {
 	} else {
 		return [
 			{
-				op: OperationType.ADD,
+				op: 'add',
 				path: operation.path,
 				value: operation.path.get(state)
 			}
@@ -146,16 +141,16 @@ export class Patch<T = any> {
 			let object;
 			const pointerTarget = walk(next.path.segments, patchedObject);
 			switch (next.op) {
-				case OperationType.ADD:
+				case 'add':
 					object = add(pointerTarget, next.value);
 					break;
-				case OperationType.REPLACE:
+				case 'replace':
 					object = replace(pointerTarget, next.value);
 					break;
-				case OperationType.REMOVE:
+				case 'remove':
 					object = remove(pointerTarget);
 					break;
-				case OperationType.TEST:
+				case 'test':
 					const result = test(pointerTarget, next.value);
 					if (!result) {
 						throw new Error('Test operation failure. Unable to apply any operations.');

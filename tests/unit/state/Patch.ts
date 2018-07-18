@@ -2,7 +2,7 @@ const { describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 import { Pointer } from './../../../src/state/Pointer';
-import { Patch, OperationType } from './../../../src/state/Patch';
+import { Patch } from './../../../src/state/Patch';
 import * as ops from './../../../src/state/operations';
 
 describe('state/Patch', () => {
@@ -14,8 +14,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
-				{ op: OperationType.REMOVE, path: new Pointer('/test') }
+				{ op: 'test', path: new Pointer('/test'), value: 'test' },
+				{ op: 'remove', path: new Pointer('/test') }
 			]);
 		});
 
@@ -26,8 +26,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { foo: { bar: { qux: 'test' } } });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/foo/bar/qux'), value: 'test' },
-				{ op: OperationType.REMOVE, path: new Pointer('/foo/bar/qux') }
+				{ op: 'test', path: new Pointer('/foo/bar/qux'), value: 'test' },
+				{ op: 'remove', path: new Pointer('/foo/bar/qux') }
 			]);
 		});
 
@@ -38,8 +38,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
-				{ op: OperationType.REMOVE, path: new Pointer('/test') }
+				{ op: 'test', path: new Pointer('/test'), value: 'test' },
+				{ op: 'remove', path: new Pointer('/test') }
 			]);
 		});
 
@@ -50,8 +50,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: ['test'] });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/test/0'), value: 'test' },
-				{ op: OperationType.REMOVE, path: new Pointer('/test/0') }
+				{ op: 'test', path: new Pointer('/test/0'), value: 'test' },
+				{ op: 'remove', path: new Pointer('/test/0') }
 			]);
 		});
 	});
@@ -64,8 +64,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
-				{ op: OperationType.REMOVE, path: new Pointer('/test') }
+				{ op: 'test', path: new Pointer('/test'), value: 'test' },
+				{ op: 'remove', path: new Pointer('/test') }
 			]);
 		});
 
@@ -76,8 +76,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { foo: { bar: { qux: 'test' } } });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/foo/bar/qux'), value: 'test' },
-				{ op: OperationType.REMOVE, path: new Pointer('/foo/bar/qux') }
+				{ op: 'test', path: new Pointer('/foo/bar/qux'), value: 'test' },
+				{ op: 'remove', path: new Pointer('/foo/bar/qux') }
 			]);
 		});
 
@@ -88,8 +88,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: 'test' });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
-				{ op: OperationType.REPLACE, path: new Pointer('/test'), value: true }
+				{ op: 'test', path: new Pointer('/test'), value: 'test' },
+				{ op: 'replace', path: new Pointer('/test'), value: true }
 			]);
 		});
 
@@ -100,8 +100,8 @@ describe('state/Patch', () => {
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: ['test', 'test'] });
 			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.TEST, path: new Pointer('/test/1'), value: 'test' },
-				{ op: OperationType.REPLACE, path: new Pointer('/test/1'), value: 'foo' }
+				{ op: 'test', path: new Pointer('/test/1'), value: 'test' },
+				{ op: 'replace', path: new Pointer('/test/1'), value: 'foo' }
 			]);
 		});
 	});
@@ -113,9 +113,7 @@ describe('state/Patch', () => {
 			const result = patch.apply(obj);
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { other: true });
-			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.ADD, path: new Pointer('/test'), value: undefined }
-			]);
+			assert.deepEqual(result.undoOperations, [{ op: 'add', path: new Pointer('/test'), value: undefined }]);
 		});
 
 		it('existing path', () => {
@@ -124,9 +122,7 @@ describe('state/Patch', () => {
 			const result = patch.apply(obj);
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, {});
-			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.ADD, path: new Pointer('/test'), value: true }
-			]);
+			assert.deepEqual(result.undoOperations, [{ op: 'add', path: new Pointer('/test'), value: true }]);
 		});
 
 		it('array index path', () => {
@@ -135,9 +131,7 @@ describe('state/Patch', () => {
 			const result = patch.apply(obj);
 			assert.notStrictEqual(result.object, obj);
 			assert.deepEqual(result.object, { test: ['test'] });
-			assert.deepEqual(result.undoOperations, [
-				{ op: OperationType.ADD, path: new Pointer('/test/1'), value: 'foo' }
-			]);
+			assert.deepEqual(result.undoOperations, [{ op: 'add', path: new Pointer('/test/1'), value: 'foo' }]);
 		});
 	});
 

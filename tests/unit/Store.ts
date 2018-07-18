@@ -2,12 +2,12 @@ const { beforeEach, describe, it } = intern.getInterface('bdd');
 const { assert } = intern.getPlugin('chai');
 
 import { Store } from './../../src/Store';
-import { OperationType, PatchOperation } from './../../src/state/Patch';
+import { PatchOperation } from './../../src/state/Patch';
 import { Pointer } from './../../src/state/Pointer';
 
 let store: Store = new Store();
 
-const testPatchOperations: PatchOperation[] = [{ op: OperationType.ADD, path: new Pointer('/test'), value: 'test' }];
+const testPatchOperations: PatchOperation[] = [{ op: 'add', path: new Pointer('/test'), value: 'test' }];
 
 describe('store', () => {
 	beforeEach(() => {
@@ -23,8 +23,8 @@ describe('store', () => {
 
 		assert.strictEqual(store.get(store.path('test')), 'test');
 		assert.deepEqual(undo, [
-			{ op: OperationType.TEST, path: new Pointer('/test'), value: 'test' },
-			{ op: OperationType.REMOVE, path: new Pointer('/test') }
+			{ op: 'test', path: new Pointer('/test'), value: 'test' },
+			{ op: 'remove', path: new Pointer('/test') }
 		]);
 	});
 
@@ -40,8 +40,8 @@ describe('store', () => {
 
 		apply(
 			[
-				{ op: OperationType.ADD, path: new Pointer('/foo/bar'), value: 'test' },
-				{ op: OperationType.ADD, path: new Pointer('/baz'), value: 'hello' }
+				{ op: 'add', path: new Pointer('/foo/bar'), value: 'test' },
+				{ op: 'add', path: new Pointer('/baz'), value: 'hello' }
 			],
 			true
 		);
@@ -51,8 +51,8 @@ describe('store', () => {
 
 		apply(
 			[
-				{ op: OperationType.ADD, path: new Pointer('/foo/bar'), value: 'test' },
-				{ op: OperationType.ADD, path: new Pointer('/baz'), value: 'world' }
+				{ op: 'add', path: new Pointer('/foo/bar'), value: 'test' },
+				{ op: 'add', path: new Pointer('/baz'), value: 'world' }
 			],
 			true
 		);
@@ -73,8 +73,8 @@ describe('store', () => {
 
 		apply(
 			[
-				{ op: OperationType.ADD, path: new Pointer('/foo/bar'), value: 'test' },
-				{ op: OperationType.ADD, path: new Pointer('/baz'), value: 'hello' }
+				{ op: 'add', path: new Pointer('/foo/bar'), value: 'test' },
+				{ op: 'add', path: new Pointer('/baz'), value: 'hello' }
 			],
 			true
 		);
@@ -86,8 +86,8 @@ describe('store', () => {
 
 		apply(
 			[
-				{ op: OperationType.ADD, path: new Pointer('/foo/bar'), value: 'test2' },
-				{ op: OperationType.ADD, path: new Pointer('/baz'), value: 'hello2' }
+				{ op: 'add', path: new Pointer('/foo/bar'), value: 'test2' },
+				{ op: 'add', path: new Pointer('/baz'), value: 'hello2' }
 			],
 			true
 		);
@@ -111,8 +111,8 @@ describe('store', () => {
 		beforeEach(() => {
 			store = new Store<{ foo: { bar: string }; baz: number[] }>();
 			store.apply([
-				{ op: OperationType.ADD, path: new Pointer('/foo'), value: { bar: 'bar' } },
-				{ op: OperationType.ADD, path: new Pointer('/baz'), value: [5] }
+				{ op: 'add', path: new Pointer('/foo'), value: { bar: 'bar' } },
+				{ op: 'add', path: new Pointer('/baz'), value: [5] }
 			]);
 		});
 

@@ -1,16 +1,10 @@
-import {
-	RemovePatchOperation,
-	ReplacePatchOperation,
-	AddPatchOperation,
-	TestPatchOperation,
-	OperationType
-} from './Patch';
+import { RemovePatchOperation, ReplacePatchOperation, AddPatchOperation, TestPatchOperation } from './Patch';
 import { Pointer } from './Pointer';
 import { Path } from '../Store';
 
 export function add<T = any, U = any>(path: Path<T, U>, value: U): AddPatchOperation<T, U> {
 	return {
-		op: OperationType.ADD,
+		op: 'add',
 		path: new Pointer(path.path),
 		value
 	};
@@ -18,7 +12,7 @@ export function add<T = any, U = any>(path: Path<T, U>, value: U): AddPatchOpera
 
 export function replace<T = any, U = any>(path: Path<T, U>, value: U): ReplacePatchOperation<T, U> {
 	return {
-		op: OperationType.REPLACE,
+		op: 'replace',
 		path: new Pointer(path.path),
 		value
 	};
@@ -26,14 +20,14 @@ export function replace<T = any, U = any>(path: Path<T, U>, value: U): ReplacePa
 
 export function remove<T = any, U = any>(path: Path<T, U>): RemovePatchOperation<T, U> {
 	return {
-		op: OperationType.REMOVE,
+		op: 'remove',
 		path: new Pointer(path.path)
 	};
 }
 
 export function test<T = any, U = any>(path: Path<T, U>, value: U): TestPatchOperation<T, U> {
 	return {
-		op: OperationType.TEST,
+		op: 'test',
 		path: new Pointer(path.path),
 		value
 	};

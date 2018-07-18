@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Example</title>
+	<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+	<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+	<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+	<style>
+		.container {
+			float: left;
+			height: 280px;
+			width: 400px;
+			margin: 10px;
+		}
+		.mdl-card {
+			width: 100%;
+			height: 100%;
+		}
+		.mdl-textfield {
+			width: 100%;
+		}
+		.mdl-button {
+			margin-right: 5px;
+		}
+	</style>
+</head>
+<body>
+	<script src="../../node_modules/@dojo/loader/loader.js"></script>
+	<script>
+		require.config({
+			baseUrl: '.',
+			packages: [
+				{ name: 'src', location: '../../src' },
+				{ name: '@dojo', location: '../../node_modules/@dojo' },
+				{ name: 'pepjs', location: '../../node_modules/pepjs/dist', main: 'pep' },
+				{ name: 'tslib', location: '../../node_modules/tslib', main: 'tslib' }
+			]
+		});
+		require([ './main' ], function () {});
+	</script>
+</body>
+</html>

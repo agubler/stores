@@ -17,13 +17,14 @@
 		"removeComments": false,
 		"sourceMap": true,
 		"strict": true,
-		"importHelpers": true,
+		"importHelpers": false,
 		"downlevelIteration": true,
 		"target": "es5",
 		"types": [ "intern" ]
 	},
 	"include": [
 		"./src/**/*.ts",
-		"./tests/**/*.ts"
+		"./tests/**/*.ts",
+		"./examples/**/*.ts"
 	]
 }
