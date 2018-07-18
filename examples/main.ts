@@ -7,8 +7,6 @@ import { replace } from './../src/state/operations';
 import { createCommandFactory, createProcess } from './../src/process';
 import { HistoryManager } from './../src/middleware/HistoryManager';
 import { WeakMap } from '@dojo/shim/WeakMap';
-const a = require('./../../src/storeWorker');
-console.log(a);
 
 interface Increment {
 	counter: number;
