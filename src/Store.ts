@@ -114,8 +114,11 @@ export class Store<T = any> extends Evented implements State<T> {
 		super();
 		if (Adapter) {
 			const adapter = new Adapter();
-			this.get = adapter.get.bind(adapter);
-			this.apply = adapter.apply.bind(adapter);
+			this.apply = async (operations: any[]) => {
+				const { undos, state } = await adapter.apply(operations, this._state);
+				this._state = state;
+				return undos;
+			};
 		}
 	}
 
@@ -123,14 +126,16 @@ export class Store<T = any> extends Evented implements State<T> {
 	 * Returns the state at a specific pointer path location.
 	 */
 	public get = <U = any>(path: Path<T, U>): U => {
-		const pointer = new Pointer(path.path);
-		return pointer.get(this._state);
+		return path.value;
 	};
 
 	/**
 	 * Applies store operations to state and returns the undo operations
 	 */
-	public apply = (operations: any[], invalidate: boolean = false): PatchOperation<T>[] => {
+	public apply = (
+		operations: any[],
+		invalidate: boolean = false
+	): Promise<PatchOperation<T>[]> | PatchOperation<T>[] => {
 		const patch = new Patch(operations);
 		const patchResult = patch.apply(this._state);
 		this._state = patchResult.object;
@@ -141,9 +146,14 @@ export class Store<T = any> extends Evented implements State<T> {
 	};
 
 	public at = <U = any>(path: Path<T, Array<U>>, index: number): Path<T, U> => {
+		const array = this.get(path);
+		const value = array && array[index];
+
 		return {
-			path: `${path.path}/${index}`
-		} as Path<T, U>;
+			path: `${path.path}/${index}`,
+			state: path.state,
+			value
+		};
 	};
 
 	public onChange = <U = any>(paths: Path<T, U> | Path<T, U>[], callback: () => void) => {
@@ -214,8 +224,10 @@ export class Store<T = any> extends Evented implements State<T> {
 		const pointer = new Pointer(hasMultipleSegments ? stringSegments : stringSegments[0] || '');
 
 		return {
-			path: pointer.path
-		} as Path<T, any>;
+			path: pointer.path,
+			state: this._state,
+			value: pointer.get(this._state)
+		};
 	};
 }
 

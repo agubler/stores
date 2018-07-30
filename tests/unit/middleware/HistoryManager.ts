@@ -30,14 +30,14 @@ describe('extras', () => {
 			historyManager.collector(collector())
 		);
 		const executor = incrementCounterProcess(store);
-		await executor({});
-		assert.strictEqual(await store.get(store.path('counter')), 1);
-		await executor({});
-		assert.strictEqual(await store.get(store.path('counter')), 2);
-		await executor({});
-		assert.strictEqual(await store.get(store.path('counter')), 3);
+		executor({});
+		assert.strictEqual(store.get(store.path('counter')), 1);
+		executor({});
+		assert.strictEqual(store.get(store.path('counter')), 2);
+		executor({});
+		assert.strictEqual(store.get(store.path('counter')), 3);
 
-		await historyManager.undo(store);
+		historyManager.undo(store);
 		// serialize the history
 		const json = JSON.stringify(historyManager.serialize(store));
 		// create a new store
@@ -47,30 +47,30 @@ describe('extras', () => {
 		// cannot redo nothing
 		assert.isFalse(historyManager.canRedo(storeCopy));
 		// deserialize the new store with the history
-		await historyManager.deserialize(storeCopy, JSON.parse(json));
+		historyManager.deserialize(storeCopy, JSON.parse(json));
 		// should be re-hydrated
-		assert.strictEqual(await storeCopy.get(storeCopy.path('counter')), 2);
+		assert.strictEqual(storeCopy.get(storeCopy.path('counter')), 2);
 		// storeCopy history is identical to original store history
 		assert.deepEqual(historyManager.serialize(store), historyManager.serialize(storeCopy));
 		// can undo on new storeCopy
 		assert.isTrue(historyManager.canUndo(storeCopy));
-		await historyManager.undo(storeCopy);
-		assert.strictEqual(await storeCopy.get(storeCopy.path('counter')), 1);
+		historyManager.undo(storeCopy);
+		assert.strictEqual(storeCopy.get(storeCopy.path('counter')), 1);
 		assert.strictEqual(historyManager.serialize(storeCopy).history.length, 1);
 		// can redo on new StoreCopy
 		historyManager.canRedo(storeCopy);
-		await historyManager.redo(storeCopy);
-		assert.strictEqual(await storeCopy.get(storeCopy.path('counter')), 2);
+		historyManager.redo(storeCopy);
+		assert.strictEqual(storeCopy.get(storeCopy.path('counter')), 2);
 		// undo on original store
-		await historyManager.undo(store);
-		assert.strictEqual(await store.get(store.path('counter')), 1);
+		historyManager.undo(store);
+		assert.strictEqual(store.get(store.path('counter')), 1);
 		// redo on original store
-		await historyManager.redo(store);
-		assert.strictEqual(await store.get(store.path('counter')), 2);
+		historyManager.redo(store);
+		assert.strictEqual(store.get(store.path('counter')), 2);
 		// histories should now be identical
 		assert.deepEqual(historyManager.serialize(store), historyManager.serialize(storeCopy));
 		// adding to history nukes redo
-		await executor({});
+		executor({});
 		assert.isFalse(historyManager.canRedo(store));
 	});
 });

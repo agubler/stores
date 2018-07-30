@@ -3,6 +3,7 @@ import { PatchOperation } from '../state/Patch';
 import { Pointer } from '../state/Pointer';
 import Store from '../Store';
 import WeakMap from '@dojo/shim/WeakMap';
+import { isThenable } from '@dojo/shim/Promise';
 
 export interface HistoryOperation {
 	id: string;
@@ -59,7 +60,10 @@ export class HistoryManager {
 			const { history, redo, undo } = stacks;
 			if (redo.length) {
 				const { id, operations } = redo.pop();
-				const result = await store.apply(operations);
+				let result = store.apply(operations);
+				if (isThenable(result)) {
+					result = await result;
+				}
 				history.push({ id, operations });
 				undo.push({ id, operations: result });
 				this._storeMap.set(store, { history, undo, redo });
@@ -74,7 +78,10 @@ export class HistoryManager {
 			if (undo.length && history.length) {
 				const { id, operations } = undo.pop();
 				history.pop();
-				const result = await store.apply(operations);
+				let result = store.apply(operations);
+				if (isThenable(result)) {
+					result = await result;
+				}
 				redo.push({ id, operations: result });
 				this._storeMap.set(store, { history, undo, redo });
 			}
@@ -83,7 +90,7 @@ export class HistoryManager {
 
 	public async deserialize(store: Store, data: HistoryData) {
 		const { history, redo } = data;
-		await history.forEach(async ({ id, operations }: HistoryOperation) => {
+		history.forEach(async ({ id, operations }: HistoryOperation) => {
 			operations = operations.map((operation) => {
 				operation.path = new Pointer(String(operation.path));
 				return operation;
@@ -93,7 +100,10 @@ export class HistoryManager {
 			if (process) {
 				callback = process[2];
 			}
-			await processExecutor(id, [() => operations], store, callback, undefined)({});
+			const result = processExecutor(id, [() => operations], store, callback, undefined)({});
+			if (isThenable(result)) {
+				await result;
+			}
 		});
 		const stacks = this._storeMap.get(store);
 		redo.forEach(({ id, operations }: HistoryOperation) => {

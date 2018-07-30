@@ -41,32 +41,24 @@ interface PointerTarget {
 	segment: string;
 }
 
-let state = {};
-
-function apply(operations: PatchOperation[]): PatchOperation[] {
+function apply(operations: PatchOperation[], state: any): { undos: PatchOperation[]; state: any } {
 	const patch = new Patch(operations);
 	const patchResult = patch.apply(state);
 	state = patchResult.object;
-	return patchResult.undoOperations;
-}
-
-function get(path: string) {
-	const pointer = new Pointer(path);
-	return pointer.get(state);
+	return {
+		undos: patchResult.undoOperations,
+		state
+	};
 }
 
 onmessage = (event) => {
-	const [type, id, payload] = event.data;
-	if (type === 'get') {
-		(postMessage as any)([id, get(payload)]);
-	} else {
-		const operations = payload.map((operation: any) => {
-			operation.path = new Pointer(String(operation.path));
-			return operation;
-		});
-		const undos = apply(operations);
-		(postMessage as any)([id, undos]);
-	}
+	let [id, operations, state] = event.data;
+	operations = operations.map((operation: any) => {
+		operation.path = new Pointer(String(operation.path));
+		return operation;
+	});
+	const { undos, state: updatedState } = apply(operations, state);
+	(postMessage as any)([id, undos, updatedState]);
 };
 
 function decode(segment: string) {

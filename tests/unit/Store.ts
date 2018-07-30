@@ -110,6 +110,7 @@ describe('store', () => {
 
 		beforeEach(() => {
 			store = new Store<{ foo: { bar: string }; baz: number[] }>();
+			debugger;
 			store.apply([
 				{ op: 'add', path: new Pointer('/foo'), value: { bar: 'bar' } },
 				{ op: 'add', path: new Pointer('/baz'), value: [5] }

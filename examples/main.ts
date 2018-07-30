@@ -15,13 +15,13 @@ interface Increment {
 
 const createCommand = createCommandFactory<Increment>();
 
-const incrementCounter = createCommand(async ({ get, path }) => {
-	let counter = (await get(path('counter'))) || 0;
+const incrementCounter = createCommand(({ get, path }) => {
+	let counter = get(path('counter')) || 0;
 	return [replace(path('counter'), ++counter)];
 });
 
-const incrementAnotherCounter = createCommand(async ({ get, path }) => {
-	let anotherCounter = (await get(path('anotherCounter'))) || 0;
+const incrementAnotherCounter = createCommand(({ get, path }) => {
+	let anotherCounter = get(path('anotherCounter')) || 0;
 	return [replace(path('anotherCounter'), anotherCounter + 10)];
 });
 
@@ -57,8 +57,8 @@ class Example extends WidgetBase<{ isWorker?: true }> {
 		} catch (e) {}
 		this._stores.push(store);
 		this._storeState.set(store, {
-			counter: await store.get(store.path('counter')),
-			anotherCounter: await store.get(store.path('anotherCounter'))
+			counter: store.get(store.path('counter')),
+			anotherCounter: store.get(store.path('anotherCounter'))
 		});
 		this.invalidate();
 	}
@@ -66,8 +66,8 @@ class Example extends WidgetBase<{ isWorker?: true }> {
 	private async _increment(store: Store) {
 		await incrementProcess(store)({});
 		this._storeState.set(store, {
-			counter: await store.get(store.path('counter')),
-			anotherCounter: await store.get(store.path('anotherCounter'))
+			counter: store.get(store.path('counter')),
+			anotherCounter: store.get(store.path('anotherCounter'))
 		});
 		this.invalidate();
 	}
@@ -75,8 +75,8 @@ class Example extends WidgetBase<{ isWorker?: true }> {
 	private async _incrementLoads(store: Store) {
 		await incrementLoadsProcess(store)({});
 		this._storeState.set(store, {
-			counter: await store.get(store.path('counter')),
-			anotherCounter: await store.get(store.path('anotherCounter'))
+			counter: store.get(store.path('counter')),
+			anotherCounter: store.get(store.path('anotherCounter'))
 		});
 		this.invalidate();
 	}
@@ -84,8 +84,8 @@ class Example extends WidgetBase<{ isWorker?: true }> {
 	private async _undo(store: Store) {
 		await historyManager.undo(store);
 		this._storeState.set(store, {
-			counter: await store.get(store.path('counter')),
-			anotherCounter: await store.get(store.path('anotherCounter'))
+			counter: store.get(store.path('counter')),
+			anotherCounter: store.get(store.path('anotherCounter'))
 		});
 		this.invalidate();
 	}

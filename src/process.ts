@@ -72,7 +72,10 @@ export interface ProcessResult<T = any, P extends object = DefaultPayload> exten
 	store: Store<T>;
 	operations: PatchOperation<T>[];
 	undoOperations: PatchOperation<T>[];
-	apply: (operations: PatchOperation<T>[], invalidate?: boolean) => PatchOperation<T>[];
+	apply: (
+		operations: PatchOperation<T>[],
+		invalidate?: boolean
+	) => Promise<PatchOperation<T>[]> | PatchOperation<T>[];
 	payload: P;
 	id: string;
 	error?: ProcessError<T> | null;
@@ -170,8 +173,11 @@ export function processExecutor<T = any, P extends object = DefaultPayload>(
 
 				for (let i = 0; i < results.length; i++) {
 					operations.push(...results[i]);
-					const undos = await apply(results[i]);
-					undoOperations = [...undos, ...undoOperations];
+					let applyResults = apply(results[i]);
+					if (isThenable(applyResults)) {
+						applyResults = await applyResults;
+					}
+					undoOperations = [...applyResults, ...undoOperations];
 				}
 
 				store.invalidate();

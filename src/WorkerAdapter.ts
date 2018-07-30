@@ -1,6 +1,5 @@
 import Map from '@dojo/shim/Map';
 import uuid from '@dojo/core/uuid';
-import { Path } from './Store';
 import { PatchOperation } from './state/Patch';
 
 export class WorkerAdapter {
@@ -11,28 +10,19 @@ export class WorkerAdapter {
 		this._worker = new Worker('./../../_build/src/storeWorker.js');
 
 		this._worker.onmessage = (event) => {
-			const [id, payload] = event.data;
+			const [id, undos, state] = event.data;
 			const resolve = this._messages.get(id);
-			resolve(payload);
+			resolve({ undos, state });
 		};
 	}
 
-	async apply(operations: PatchOperation[]) {
+	async apply(operations: PatchOperation[], state: any) {
 		const id = uuid();
 		operations = operations.map((operation: any) => {
 			operation.path = operation.path.toString();
 			return operation;
 		});
-		this._worker.postMessage(['apply', id, operations]);
-		const promise = new Promise((resolve) => {
-			this._messages.set(id, resolve);
-		});
-		return promise;
-	}
-
-	async get(path: Path<any, any>) {
-		const id = uuid();
-		this._worker.postMessage(['get', id, path.path]);
+		this._worker.postMessage([id, operations, state]);
 		const promise = new Promise((resolve) => {
 			this._messages.set(id, resolve);
 		});
